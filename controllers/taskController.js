@@ -85,7 +85,7 @@ const getTaskStats = async (req, res) => {
     const recentTasks = await Task.find({ userId })
       .sort({ createdAt: -1 })
       .limit(5)
-      .select('title status createdAt');
+      .select('title status dueDate createdAt');
 
     res.status(200).json({
       success: true,
@@ -111,7 +111,7 @@ const getTaskStats = async (req, res) => {
 // ==================== CREATE TASK ====================
 const createTask = async (req, res) => {
   try {
-    const { title, description, status } = req.body;
+    const { title, description, status, dueDate } = req.body;
 
     if (!title) {
       return res.status(400).json({
@@ -133,6 +133,7 @@ const createTask = async (req, res) => {
       title,
       description: description || '',
       status: status || 'todo',
+      dueDate: dueDate || null,
     });
 
     res.status(201).json({
@@ -152,7 +153,7 @@ const createTask = async (req, res) => {
 const updateTask = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, status } = req.body;
+    const { title, description, status, dueDate } = req.body;
 
     // Validate ObjectId format
     if (!isValidId(id)) {
@@ -183,6 +184,7 @@ const updateTask = async (req, res) => {
     if (title !== undefined) task.title = title;
     if (description !== undefined) task.description = description;
     if (status !== undefined) task.status = status;
+    if (dueDate !== undefined) task.dueDate = dueDate === '' ? null : dueDate;
 
     await task.save();
 
