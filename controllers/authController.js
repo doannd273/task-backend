@@ -54,6 +54,12 @@ const register = async (req, res) => {
         userId: user._id,
         accessToken,
         refreshToken,
+        user: {
+          _id: user._id,
+          email: user.email,
+          fullName: user.fullName,
+          avatar: user.avatar || '',
+        },
       },
     });
   } catch (error) {
@@ -120,6 +126,12 @@ const login = async (req, res) => {
       data: {
         accessToken,
         refreshToken,
+        user: {
+          _id: user._id,
+          email: user.email,
+          fullName: user.fullName,
+          avatar: user.avatar || '',
+        },
       },
     });
   } catch (error) {
