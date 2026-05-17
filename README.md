@@ -107,6 +107,31 @@ Run in development mode with nodemon:
 npm run dev
 ```
 
+Run in development mode and sync the Android dev base URL first:
+
+```bash
+npm run dev:android
+```
+
+This updates `DEV_BASE_API_URL` in the Android project's `local.properties` to the current LAN URL, such as `"http://192.168.1.10:3000/"`, then starts the backend. By default, the script looks for `../android-story/TreeTask/local.properties` relative to this backend repo.
+
+You can also sync the URL without starting the server:
+
+```bash
+npm run sync:android-url
+```
+
+Useful overrides:
+
+```bash
+npm run sync:android-url -- --host 192.168.1.10
+npm run sync:android-url -- --port 3001
+npm run sync:android-url -- --path ../android-story/TreeTask/local.properties
+npm run sync:android-url -- --dry-run
+```
+
+You can also set `ANDROID_LOCAL_PROPERTIES_PATH` locally instead of passing `--path`.
+
 Run in production mode:
 
 ```bash

@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
+    "sync:android-url": "node scripts/syncAndroidDevUrl.js",
+    "dev:android": "npm run sync:android-url && npm run dev",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
