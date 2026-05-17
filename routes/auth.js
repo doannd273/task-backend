@@ -5,6 +5,8 @@ const {
   login,
   refreshToken,
   logout,
+  forgotPassword,
+  resetPassword,
 } = require('../controllers/authController');
 const authMiddleware = require('../middleware/authMiddleware');
 
@@ -21,7 +23,9 @@ router.post('/refresh-token', refreshToken);
 router.post('/logout', authMiddleware, logout);
 
 // POST /api/auth/forgot-password
-const { forgotPassword } = require('../controllers/authController');
 router.post('/forgot-password', forgotPassword);
+
+// POST /api/auth/reset-password
+router.post('/reset-password', resetPassword);
 
 module.exports = router;

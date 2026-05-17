@@ -41,7 +41,7 @@ task-backend/
 ## API Modules
 
 - `GET /` - health check
-- `/api/auth` - register, login, refresh token, logout, forgot password
+- `/api/auth` - register, login, refresh token, logout, forgot password OTP, reset password
 - `/api/user` - profile, profile update, password change, avatar upload, user search
 - `/api/tasks` - task list, stats, create, update, delete
 - `/api/conversations` - create/list/detail/update/delete conversations and manage participants
@@ -84,6 +84,7 @@ JWT_EXPIRE=15m
 JWT_REFRESH_SECRET=replace-with-another-long-random-secret
 JWT_REFRESH_EXPIRE=7d
 DEVICE_ID_HASH_SECRET=replace-with-device-id-hash-secret
+PASSWORD_RESET_OTP_DELIVERY=console
 EMAIL_USER=your-email@gmail.com
 EMAIL_PASS=your-email-app-password
 ```
@@ -92,6 +93,7 @@ Notes:
 
 - `MONGO_URI`, `JWT_SECRET`, and `JWT_REFRESH_SECRET` are required.
 - `DEVICE_ID_HASH_SECRET` is required if you want error logs to include `deviceIdHash`; without it, the server skips device ID hashing instead of logging a predictable hash.
+- `PASSWORD_RESET_OTP_DELIVERY=console` is useful for local demos only. It logs password reset OTPs to the backend console instead of sending email. Do not use it in production.
 - `EMAIL_USER` and `EMAIL_PASS` are required only for `POST /api/auth/forgot-password`.
 - Use a Gmail app password or another SMTP-compatible credential for email sending.
 
@@ -208,6 +210,7 @@ Update these Bruno environment variables as needed:
 - `conversationId` - required for conversation detail, message, participant requests
 - `otherUserId` - required for private/group conversation and participant requests
 - `avatarPath` - absolute path to an image file for avatar upload
+- `resetOtp` - OTP received by email for `Auth / Reset Password`
 
 ### Localized Errors
 
@@ -241,6 +244,24 @@ Accept-Language: vi-VN
 ```
 
 The server normalizes those values into `req.client` for error logs. `X-Device-Id` is logged only as `deviceIdHash`.
+
+### Forgot Password Flow
+
+The mobile-friendly password reset flow uses an email OTP instead of sending a new password directly.
+
+1. Call `POST /api/auth/forgot-password` with `{ "email": "user@example.com" }`.
+2. The API always returns a generic success response when the request is valid, so it does not reveal whether the email exists.
+3. If the email belongs to a user, the API sends a 6-digit OTP that expires after 10 minutes.
+4. Call `POST /api/auth/reset-password` with `{ "email": "user@example.com", "otp": "123456", "newPassword": "password1234" }`.
+5. The API allows up to 5 wrong OTP attempts and clears the OTP after a successful reset.
+
+For local demos without SMTP, set:
+
+```env
+PASSWORD_RESET_OTP_DELIVERY=console
+```
+
+The backend will print the OTP with a masked email and `requestId`. In production, leave this unset and configure `EMAIL_USER` plus `EMAIL_PASS`.
 
 ## Socket.IO
 

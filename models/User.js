@@ -36,6 +36,18 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    passwordResetOtpHash: {
+      type: String,
+      default: null,
+    },
+    passwordResetExpires: {
+      type: Date,
+      default: null,
+    },
+    passwordResetAttempts: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true, // tự động tạo createdAt & updatedAt
@@ -60,6 +72,9 @@ userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;
   delete obj.refreshToken;
+  delete obj.passwordResetOtpHash;
+  delete obj.passwordResetExpires;
+  delete obj.passwordResetAttempts;
   return obj;
 };
 

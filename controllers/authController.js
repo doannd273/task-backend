@@ -1,6 +1,14 @@
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const nodemailer = require('nodemailer');
 const User = require('../models/User');
 const { sendError } = require('../utils/response');
+const { translate } = require('../utils/i18n');
+
+const PASSWORD_RESET_OTP_TTL_MS = 10 * 60 * 1000;
+const PASSWORD_RESET_MAX_ATTEMPTS = 5;
+const PASSWORD_RESET_OTP_DELIVERY_CONSOLE = 'console';
 
 // Tạo Access Token (ngắn hạn)
 const generateAccessToken = (userId) => {
@@ -45,6 +53,8 @@ const register = async (req, res) => {
 
     res.status(201).json({
       success: true,
+      code: 'AUTH_REGISTER_SUCCESS',
+      message: translate(req.locale, 'AUTH_REGISTER_SUCCESS'),
       data: {
         userId: user._id,
         accessToken,
@@ -83,7 +93,8 @@ const login = async (req, res) => {
     }
 
     // Tìm user
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
       return sendError(req, res, 401, 'AUTH_INVALID_CREDENTIALS');
     }
@@ -185,8 +196,66 @@ const logout = async (req, res) => {
   }
 };
 
-// ==================== FORGOT PASSWORD ====================
-const nodemailer = require('nodemailer');
+const isConsoleOtpDelivery = () => {
+  return (
+    process.env.NODE_ENV !== 'production' &&
+    process.env.PASSWORD_RESET_OTP_DELIVERY === PASSWORD_RESET_OTP_DELIVERY_CONSOLE
+  );
+};
+
+const isEmailServiceConfigured = () => {
+  return Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS);
+};
+
+const maskEmail = (email) => {
+  const [name, domain] = String(email).split('@');
+  if (!name || !domain) return 'unknown';
+
+  const visibleName = name.length <= 2 ? name[0] : `${name[0]}***${name[name.length - 1]}`;
+  return `${visibleName}@${domain}`;
+};
+
+const sendPasswordResetOtpEmail = async (email, otp, req) => {
+  if (isConsoleOtpDelivery()) {
+    console.warn('Password reset OTP dev delivery:', {
+      requestId: req.requestId,
+      email: maskEmail(email),
+      otp,
+    });
+    return;
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  return transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: 'Reset Password OTP - Task Manager API',
+    text: `Xin chào,\n\nMã đặt lại mật khẩu của bạn là: ${otp}\n\nMã này có hiệu lực trong 10 phút. Nếu bạn không yêu cầu đặt lại mật khẩu, hãy bỏ qua email này.\n\nTrân trọng!`,
+  });
+};
+
+const clearPasswordResetOtp = (user) => {
+  user.passwordResetOtpHash = null;
+  user.passwordResetExpires = null;
+  user.passwordResetAttempts = 0;
+};
+
+const sendPasswordResetRequested = (req, res) => {
+  const message = translate(req.locale, 'AUTH_PASSWORD_RESET_OTP_SENT');
+
+  return res.status(200).json({
+    success: true,
+    code: 'AUTH_PASSWORD_RESET_OTP_SENT',
+    message,
+  });
+};
 
 const forgotPassword = async (req, res) => {
   try {
@@ -196,48 +265,119 @@ const forgotPassword = async (req, res) => {
       return sendError(req, res, 400, 'AUTH_EMAIL_REQUIRED');
     }
 
+    if (!isConsoleOtpDelivery() && !isEmailServiceConfigured()) {
+      console.error('Forgot password email config missing:', {
+        requestId: req.requestId,
+        hasEmailUser: Boolean(process.env.EMAIL_USER),
+        hasEmailPass: Boolean(process.env.EMAIL_PASS),
+      });
+      return sendError(req, res, 500, 'AUTH_EMAIL_SERVICE_NOT_CONFIGURED');
+    }
+
     // Tìm user
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
-      // Dùng thông báo chung để tránh expose email hợp lệ hay không
-      return sendError(req, res, 404, 'AUTH_ACCOUNT_EMAIL_NOT_FOUND');
+      return sendPasswordResetRequested(req, res);
     }
 
-    // Generate a random new password (8 characters)
-    const newPassword = Math.random().toString(36).slice(-8);
+    const otp = crypto.randomInt(100000, 1000000).toString();
 
-    // Gán password mới (Hook pre-save trong User model sẽ tự động mã hóa nó)
-    user.password = newPassword;
+    user.passwordResetOtpHash = await bcrypt.hash(otp, 10);
+    user.passwordResetExpires = new Date(Date.now() + PASSWORD_RESET_OTP_TTL_MS);
+    user.passwordResetAttempts = 0;
     await user.save();
 
-    // Gửi email chứa password mới
-    const transporter = nodemailer.createTransport({
-      service: 'gmail', // Bạn có thể cấu hình service khác tùy ý
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+    try {
+      await sendPasswordResetOtpEmail(user.email, otp, req);
+    } catch (error) {
+      clearPasswordResetOtp(user);
+      await user.save();
 
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: user.email,
-      subject: 'Reset Password - Task Manager API',
-      text: `Chào bạn,\n\nMật khẩu của bạn đã được đặt lại thành công.\n\nMật khẩu mới của bạn là: ${newPassword}\n\nVui lòng đăng nhập và đổi mật khẩu mới sớm nhất có thể để đảm bảo an toàn.\n\nTrân trọng!`,
-    };
+      console.error('Forgot password email send error:', {
+        requestId: req.requestId,
+        code: error.code,
+        command: error.command,
+        responseCode: error.responseCode,
+        message: error.message,
+      });
+      return sendError(req, res, 500, 'AUTH_EMAIL_SEND_FAILED');
+    }
 
-    await transporter.sendMail(mailOptions);
-
-    res.status(200).json({
-      success: true,
-      data: {
-        message: 'A new password has been sent to your email.',
-      },
-    });
+    return sendPasswordResetRequested(req, res);
   } catch (error) {
-    console.error('Forgot password error:', error.message);
+    console.error('Forgot password error:', {
+      requestId: req.requestId,
+      message: error.message,
+    });
     return sendError(req, res, 500, 'AUTH_FORGOT_PASSWORD_FAILED');
   }
 };
 
-module.exports = { register, login, refreshToken, logout, forgotPassword };
+// ==================== RESET PASSWORD ====================
+const resetPassword = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    if (!email || !otp || !newPassword) {
+      return sendError(req, res, 400, 'AUTH_RESET_PASSWORD_REQUIRED_FIELDS');
+    }
+
+    if (newPassword.length < 6) {
+      return sendError(req, res, 400, 'AUTH_NEW_PASSWORD_TOO_SHORT');
+    }
+
+    const normalizedOtp = String(otp).trim();
+    if (!/^\d{6}$/.test(normalizedOtp)) {
+      return sendError(req, res, 400, 'AUTH_RESET_PASSWORD_INVALID_OR_EXPIRED');
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
+    if (!user || !user.passwordResetOtpHash || !user.passwordResetExpires) {
+      return sendError(req, res, 400, 'AUTH_RESET_PASSWORD_INVALID_OR_EXPIRED');
+    }
+
+    if (user.passwordResetAttempts >= PASSWORD_RESET_MAX_ATTEMPTS) {
+      return sendError(req, res, 429, 'AUTH_RESET_PASSWORD_TOO_MANY_ATTEMPTS');
+    }
+
+    if (user.passwordResetExpires.getTime() < Date.now()) {
+      clearPasswordResetOtp(user);
+      await user.save();
+      return sendError(req, res, 400, 'AUTH_RESET_PASSWORD_INVALID_OR_EXPIRED');
+    }
+
+    const isMatch = await bcrypt.compare(normalizedOtp, user.passwordResetOtpHash);
+    if (!isMatch) {
+      user.passwordResetAttempts += 1;
+      await user.save();
+
+      if (user.passwordResetAttempts >= PASSWORD_RESET_MAX_ATTEMPTS) {
+        return sendError(req, res, 429, 'AUTH_RESET_PASSWORD_TOO_MANY_ATTEMPTS');
+      }
+
+      return sendError(req, res, 400, 'AUTH_RESET_PASSWORD_INVALID_OR_EXPIRED');
+    }
+
+    user.password = newPassword;
+    user.refreshToken = null;
+    clearPasswordResetOtp(user);
+    await user.save();
+
+    const message = translate(req.locale, 'AUTH_RESET_PASSWORD_SUCCESS');
+
+    return res.status(200).json({
+      success: true,
+      code: 'AUTH_RESET_PASSWORD_SUCCESS',
+      message,
+    });
+  } catch (error) {
+    console.error('Reset password error:', {
+      requestId: req.requestId,
+      message: error.message,
+    });
+    return sendError(req, res, 500, 'AUTH_RESET_PASSWORD_FAILED');
+  }
+};
+
+module.exports = { register, login, refreshToken, logout, forgotPassword, resetPassword };
