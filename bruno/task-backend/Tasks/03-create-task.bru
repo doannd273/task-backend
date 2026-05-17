@@ -1,0 +1,28 @@
+meta {
+  name: Create Task
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/tasks/createTask
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "title": "Sample task",
+    "description": "Created from Bruno",
+    "status": "todo",
+    "dueDate": "2026-06-01T00:00:00.000Z"
+  }
+}

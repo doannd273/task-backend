@@ -1,0 +1,29 @@
+meta {
+  name: Create Conversation
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/conversations/createConversation
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "type": "group",
+    "name": "Team Chat",
+    "participantIds": [
+      "{{otherUserId}}"
+    ]
+  }
+}

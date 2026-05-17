@@ -1,0 +1,15 @@
+meta {
+  name: Get Task Stats
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/tasks/getTaskStats
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

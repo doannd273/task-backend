@@ -1,11 +1,21 @@
 # Dependencies
 node_modules/
-# Environment variables
+# Environment variables and secrets
 .env
-.env.local
-.env.development
-.env.test
-.env.production
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+.npmrc
+
+# Bruno local environments may contain persisted access/refresh tokens
+bruno/**/environments/*.bru
+!bruno/**/environments/*.example.bru
 
 # Uploaded files
 uploads/

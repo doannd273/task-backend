@@ -1,0 +1,15 @@
+meta {
+  name: Remove Participant
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}/api/conversations/removeParticipant/{{conversationId}}/{{otherUserId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

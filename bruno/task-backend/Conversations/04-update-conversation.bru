@@ -1,0 +1,25 @@
+meta {
+  name: Update Conversation
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/conversations/updateConversation/{{conversationId}}
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "name": "Renamed Team Chat"
+  }
+}

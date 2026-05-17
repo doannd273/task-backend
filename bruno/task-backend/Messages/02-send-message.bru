@@ -1,0 +1,27 @@
+meta {
+  name: Send Message
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/messages/sendMessage
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "conversationId": "{{conversationId}}",
+    "content": "Hello from Bruno",
+    "type": "text"
+  }
+}
