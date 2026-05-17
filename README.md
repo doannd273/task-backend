@@ -83,6 +83,7 @@ JWT_SECRET=replace-with-a-long-random-secret
 JWT_EXPIRE=15m
 JWT_REFRESH_SECRET=replace-with-another-long-random-secret
 JWT_REFRESH_EXPIRE=7d
+DEVICE_ID_HASH_SECRET=replace-with-device-id-hash-secret
 EMAIL_USER=your-email@gmail.com
 EMAIL_PASS=your-email-app-password
 ```
@@ -90,6 +91,7 @@ EMAIL_PASS=your-email-app-password
 Notes:
 
 - `MONGO_URI`, `JWT_SECRET`, and `JWT_REFRESH_SECRET` are required.
+- `DEVICE_ID_HASH_SECRET` is required if you want error logs to include `deviceIdHash`; without it, the server skips device ID hashing instead of logging a predictable hash.
 - `EMAIL_USER` and `EMAIL_PASS` are required only for `POST /api/auth/forgot-password`.
 - Use a Gmail app password or another SMTP-compatible credential for email sending.
 
@@ -199,12 +201,46 @@ bruno/task-backend/environments/Local.bru
 Update these Bruno environment variables as needed:
 
 - `baseUrl` - API base URL, defaults to `http://localhost:3000`
+- `language` - sent as `Accept-Language`; use `vi` or `en`
 - `accessToken` - automatically set after register, login, or refresh token
 - `refreshToken` - automatically set after register, login, or refresh token
 - `taskId` - required for update/delete task requests
 - `conversationId` - required for conversation detail, message, participant requests
 - `otherUserId` - required for private/group conversation and participant requests
 - `avatarPath` - absolute path to an image file for avatar upload
+
+### Localized Errors
+
+Clients can send `Accept-Language: vi` or `Accept-Language: en`.
+Error responses include a stable `code` for app logic and a localized `message` for display.
+The API also returns `requestId`, and echoes the same value in the `X-Request-Id` response header.
+
+```json
+{
+  "success": false,
+  "code": "AUTH_INVALID_CREDENTIALS",
+  "message": "Email hoặc mật khẩu không đúng.",
+  "requestId": "0f5e7b8c-96a5-4e0f-a69d-88d9069e9d6f"
+}
+```
+
+### Mobile Debug Headers
+
+Mobile clients can send these headers on every request:
+
+```http
+X-Request-Id: optional-client-generated-id
+X-App-Version-Code: 42
+X-App-Version-Name: 1.4.2
+X-Platform: android
+X-OS-Version: 35
+X-Device-Model: Pixel 8
+X-Device-Id: device-installation-id
+User-Agent: TreeTask/1.4.2 (Android 15; Pixel 8)
+Accept-Language: vi-VN
+```
+
+The server normalizes those values into `req.client` for error logs. `X-Device-Id` is logged only as `deviceIdHash`.
 
 ## Socket.IO
 

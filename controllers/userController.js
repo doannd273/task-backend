@@ -1,14 +1,12 @@
 const User = require('../models/User');
+const { sendError } = require('../utils/response');
 
 // ==================== GET PROFILE ====================
 const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found.',
-      });
+      return sendError(req, res, 404, 'USER_NOT_FOUND');
     }
 
     res.status(200).json({
@@ -17,10 +15,7 @@ const getProfile = async (req, res) => {
     });
   } catch (error) {
     console.error('Get profile error:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve profile.',
-    });
+    return sendError(req, res, 500, 'USER_PROFILE_RETRIEVE_FAILED');
   }
 };
 
@@ -33,10 +28,7 @@ const updateProfile = async (req, res) => {
 
     const user = await User.findById(req.user._id);
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found.',
-      });
+      return sendError(req, res, 404, 'USER_NOT_FOUND');
     }
 
     // Only update allowed fields
@@ -56,16 +48,12 @@ const updateProfile = async (req, res) => {
     // Mongoose validation error (e.g. invalid phone format)
     if (error.name === 'ValidationError') {
       const messages = Object.values(error.errors).map((val) => val.message);
-      return res.status(400).json({
-        success: false,
-        message: messages.join(', '),
+      return sendError(req, res, 400, 'COMMON_VALIDATION_ERROR', {}, {
+        details: messages,
       });
     }
 
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update profile.',
-    });
+    return sendError(req, res, 500, 'USER_PROFILE_UPDATE_FAILED');
   }
 };
 
@@ -76,35 +64,23 @@ const changePassword = async (req, res) => {
 
     // Validate input
     if (!currentPassword || !newPassword) {
-      return res.status(400).json({
-        success: false,
-        message: 'Current password and new password are required.',
-      });
+      return sendError(req, res, 400, 'USER_PASSWORD_REQUIRED');
     }
 
     if (newPassword.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: 'New password must be at least 6 characters.',
-      });
+      return sendError(req, res, 400, 'USER_PASSWORD_TOO_SHORT');
     }
 
     // Find user (need password field for comparison)
     const user = await User.findById(req.user._id);
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found.',
-      });
+      return sendError(req, res, 404, 'USER_NOT_FOUND');
     }
 
     // Verify current password
     const isMatch = await user.comparePassword(currentPassword);
     if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: 'Current password is incorrect.',
-      });
+      return sendError(req, res, 401, 'USER_CURRENT_PASSWORD_INCORRECT');
     }
 
     // Update password (pre-save hook will hash it)
@@ -119,10 +95,7 @@ const changePassword = async (req, res) => {
     });
   } catch (error) {
     console.error('Change password error:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to change password.',
-    });
+    return sendError(req, res, 500, 'USER_PASSWORD_CHANGE_FAILED');
   }
 };
 
@@ -130,10 +103,7 @@ const changePassword = async (req, res) => {
 const uploadAvatar = async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: 'No image file provided.',
-      });
+      return sendError(req, res, 400, 'USER_AVATAR_FILE_REQUIRED');
     }
 
     // path of uploaded file, accessible via the static URL we configured in server.js
@@ -141,10 +111,7 @@ const uploadAvatar = async (req, res) => {
 
     const user = await User.findById(req.user._id);
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found.',
-      });
+      return sendError(req, res, 404, 'USER_NOT_FOUND');
     }
 
     user.avatar = avatarUrl;
@@ -159,10 +126,7 @@ const uploadAvatar = async (req, res) => {
     });
   } catch (error) {
     console.error('Upload avatar error:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to upload avatar.',
-    });
+    return sendError(req, res, 500, 'USER_AVATAR_UPLOAD_FAILED');
   }
 };
 
@@ -209,10 +173,7 @@ const searchUsers = async (req, res) => {
     });
   } catch (error) {
     console.error('Search users error:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to search users.',
-    });
+    return sendError(req, res, 500, 'USER_SEARCH_FAILED');
   }
 };
 

@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
+const { sendError } = require('../utils/response');
 
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
@@ -14,7 +15,7 @@ const getMessages = async (req, res) => {
     const skip = (page - 1) * limit;
 
     if (!isValidId(conversationId)) {
-      return res.status(400).json({ success: false, message: 'Invalid conversation ID' });
+      return sendError(req, res, 400, 'MESSAGE_INVALID_CONVERSATION_ID');
     }
 
     // Verify user is part of the conversation
@@ -24,7 +25,7 @@ const getMessages = async (req, res) => {
     });
 
     if (!conversation) {
-      return res.status(404).json({ success: false, message: 'Conversation not found or access denied' });
+      return sendError(req, res, 404, 'MESSAGE_CONVERSATION_NOT_FOUND_OR_ACCESS_DENIED');
     }
 
     const totalItems = await Message.countDocuments({ conversationId });
@@ -44,7 +45,7 @@ const getMessages = async (req, res) => {
     });
   } catch (error) {
     console.error('Get messages error:', error.message);
-    res.status(500).json({ success: false, message: 'Failed to retrieve messages' });
+    return sendError(req, res, 500, 'MESSAGE_RETRIEVE_FAILED');
   }
 };
 
@@ -54,8 +55,8 @@ const sendMessage = async (req, res) => {
   try {
     const { conversationId, content, type } = req.body;
 
-    if (!isValidId(conversationId)) return res.status(400).json({ success: false, message: 'Invalid conversation ID' });
-    if (!content) return res.status(400).json({ success: false, message: 'Message content is required' });
+    if (!isValidId(conversationId)) return sendError(req, res, 400, 'MESSAGE_INVALID_CONVERSATION_ID');
+    if (!content) return sendError(req, res, 400, 'MESSAGE_CONTENT_REQUIRED');
 
     // Verify user is part of conversation
     const conversation = await Conversation.findOne({
@@ -64,7 +65,7 @@ const sendMessage = async (req, res) => {
     });
 
     if (!conversation) {
-      return res.status(404).json({ success: false, message: 'Conversation not found or access denied' });
+      return sendError(req, res, 404, 'MESSAGE_CONVERSATION_NOT_FOUND_OR_ACCESS_DENIED');
     }
 
     const message = await Message.create({
@@ -87,7 +88,7 @@ const sendMessage = async (req, res) => {
     res.status(201).json({ success: true, data: message });
   } catch (error) {
     console.error('Send message error:', error);
-    res.status(500).json({ success: false, message: 'Failed to send message' });
+    return sendError(req, res, 500, 'MESSAGE_SEND_FAILED');
   }
 };
 

@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { sendError } = require('../utils/response');
 
 // Tạo Access Token (ngắn hạn)
 const generateAccessToken = (userId) => {
@@ -22,19 +23,13 @@ const register = async (req, res) => {
 
     // Validate input
     if (!email || !password || !fullName) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email, password, and full name are required.',
-      });
+      return sendError(req, res, 400, 'AUTH_REGISTER_REQUIRED_FIELDS');
     }
 
     // Check email đã tồn tại chưa
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        message: 'Email already registered.',
-      });
+      return sendError(req, res, 409, 'AUTH_EMAIL_ALREADY_REGISTERED');
     }
 
     // Tạo user mới
@@ -68,17 +63,12 @@ const register = async (req, res) => {
     // Mongoose validation error (ví dụ: password < 6 kí tự, thiếu trường bắt buộc...)
     if (error.name === 'ValidationError') {
       const messages = Object.values(error.errors).map((val) => val.message);
-      return res.status(400).json({
-        success: false,
-        message: messages.join(', '),
+      return sendError(req, res, 400, 'COMMON_VALIDATION_ERROR', {}, {
+        details: messages,
       });
     }
 
-    res.status(500).json({
-      success: false,
-      message: 'Registration failed. Please try again.',
-      error: error.message, // Hiển thị chi tiết lỗi cho dễ debug
-    });
+    return sendError(req, res, 500, 'AUTH_REGISTRATION_FAILED');
   }
 };
 
@@ -89,28 +79,19 @@ const login = async (req, res) => {
 
     // Validate input
     if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email and password are required.',
-      });
+      return sendError(req, res, 400, 'AUTH_LOGIN_REQUIRED_FIELDS');
     }
 
     // Tìm user
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid email or password.',
-      });
+      return sendError(req, res, 401, 'AUTH_INVALID_CREDENTIALS');
     }
 
     // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid email or password.',
-      });
+      return sendError(req, res, 401, 'AUTH_INVALID_CREDENTIALS');
     }
 
     // Tạo tokens
@@ -136,10 +117,7 @@ const login = async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Login failed. Please try again.',
-    });
+    return sendError(req, res, 500, 'AUTH_LOGIN_FAILED');
   }
 };
 
@@ -149,10 +127,7 @@ const refreshToken = async (req, res) => {
     const { refreshToken: token } = req.body;
 
     if (!token) {
-      return res.status(400).json({
-        success: false,
-        message: 'Refresh token is required.',
-      });
+      return sendError(req, res, 400, 'AUTH_REFRESH_TOKEN_REQUIRED');
     }
 
     // Verify refresh token
@@ -160,19 +135,13 @@ const refreshToken = async (req, res) => {
     try {
       decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
     } catch (err) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid or expired refresh token.',
-      });
+      return sendError(req, res, 401, 'AUTH_INVALID_OR_EXPIRED_REFRESH_TOKEN');
     }
 
     // Tìm user và kiểm tra refresh token khớp
     const user = await User.findById(decoded.userId);
     if (!user || user.refreshToken !== token) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid refresh token.',
-      });
+      return sendError(req, res, 401, 'AUTH_INVALID_REFRESH_TOKEN');
     }
 
     // Tạo access token mới
@@ -192,10 +161,7 @@ const refreshToken = async (req, res) => {
     });
   } catch (error) {
     console.error('Refresh token error:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Token refresh failed. Please login again.',
-    });
+    return sendError(req, res, 500, 'AUTH_REFRESH_FAILED');
   }
 };
 
@@ -215,10 +181,7 @@ const logout = async (req, res) => {
     });
   } catch (error) {
     console.error('Logout error:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Logout failed. Please try again.',
-    });
+    return sendError(req, res, 500, 'AUTH_LOGOUT_FAILED');
   }
 };
 
@@ -230,20 +193,14 @@ const forgotPassword = async (req, res) => {
     const { email } = req.body;
 
     if (!email) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email is required.',
-      });
+      return sendError(req, res, 400, 'AUTH_EMAIL_REQUIRED');
     }
 
     // Tìm user
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
       // Dùng thông báo chung để tránh expose email hợp lệ hay không
-      return res.status(404).json({
-        success: false,
-        message: 'Account with this email does not exist.',
-      });
+      return sendError(req, res, 404, 'AUTH_ACCOUNT_EMAIL_NOT_FOUND');
     }
 
     // Generate a random new password (8 characters)
@@ -279,10 +236,7 @@ const forgotPassword = async (req, res) => {
     });
   } catch (error) {
     console.error('Forgot password error:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to reset password. Please try again.',
-    });
+    return sendError(req, res, 500, 'AUTH_FORGOT_PASSWORD_FAILED');
   }
 };
 

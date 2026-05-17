@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Task = require('../models/Task');
+const { sendError } = require('../utils/response');
 
 // Helper: validate MongoDB ObjectId
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
@@ -21,9 +22,8 @@ const getTasks = async (req, res) => {
     // Filter by status
     if (status) {
       if (!VALID_STATUSES.includes(status)) {
-        return res.status(400).json({
-          success: false,
-          message: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}`,
+        return sendError(req, res, 400, 'TASK_INVALID_STATUS', {
+          statuses: VALID_STATUSES.join(', '),
         });
       }
       filter.status = status;
@@ -55,10 +55,7 @@ const getTasks = async (req, res) => {
     });
   } catch (error) {
     console.error('Get tasks error:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve tasks.',
-    });
+    return sendError(req, res, 500, 'TASK_RETRIEVE_FAILED');
   }
 };
 
@@ -101,10 +98,7 @@ const getTaskStats = async (req, res) => {
     });
   } catch (error) {
     console.error('Get task stats error:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve task statistics.',
-    });
+    return sendError(req, res, 500, 'TASK_STATS_RETRIEVE_FAILED');
   }
 };
 
@@ -114,17 +108,13 @@ const createTask = async (req, res) => {
     const { title, description, status, dueDate } = req.body;
 
     if (!title) {
-      return res.status(400).json({
-        success: false,
-        message: 'Title is required.',
-      });
+      return sendError(req, res, 400, 'TASK_TITLE_REQUIRED');
     }
 
     // Validate status if provided
     if (status && !VALID_STATUSES.includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}`,
+      return sendError(req, res, 400, 'TASK_INVALID_STATUS', {
+        statuses: VALID_STATUSES.join(', '),
       });
     }
 
@@ -142,10 +132,7 @@ const createTask = async (req, res) => {
     });
   } catch (error) {
     console.error('Create task error:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to create task.',
-    });
+    return sendError(req, res, 500, 'TASK_CREATE_FAILED');
   }
 };
 
@@ -157,27 +144,20 @@ const updateTask = async (req, res) => {
 
     // Validate ObjectId format
     if (!isValidId(id)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid task ID format.',
-      });
+      return sendError(req, res, 400, 'TASK_INVALID_ID');
     }
 
     // Validate status if provided
     if (status && !VALID_STATUSES.includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}`,
+      return sendError(req, res, 400, 'TASK_INVALID_STATUS', {
+        statuses: VALID_STATUSES.join(', '),
       });
     }
 
     // Find task belonging to current user
     const task = await Task.findOne({ _id: id, userId: req.user._id });
     if (!task) {
-      return res.status(404).json({
-        success: false,
-        message: 'Task not found.',
-      });
+      return sendError(req, res, 404, 'TASK_NOT_FOUND');
     }
 
     // Update only provided fields
@@ -194,10 +174,7 @@ const updateTask = async (req, res) => {
     });
   } catch (error) {
     console.error('Update task error:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update task.',
-    });
+    return sendError(req, res, 500, 'TASK_UPDATE_FAILED');
   }
 };
 
@@ -208,10 +185,7 @@ const deleteTask = async (req, res) => {
 
     // Validate ObjectId format
     if (!isValidId(id)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid task ID format.',
-      });
+      return sendError(req, res, 400, 'TASK_INVALID_ID');
     }
 
     // Find and delete task belonging to current user
@@ -221,10 +195,7 @@ const deleteTask = async (req, res) => {
     });
 
     if (!task) {
-      return res.status(404).json({
-        success: false,
-        message: 'Task not found.',
-      });
+      return sendError(req, res, 404, 'TASK_NOT_FOUND');
     }
 
     res.status(200).json({
@@ -235,10 +206,7 @@ const deleteTask = async (req, res) => {
     });
   } catch (error) {
     console.error('Delete task error:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete task.',
-    });
+    return sendError(req, res, 500, 'TASK_DELETE_FAILED');
   }
 };
 

@@ -2,6 +2,9 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
+const localeMiddleware = require('./middleware/localeMiddleware');
+const requestContextMiddleware = require('./middleware/requestContextMiddleware');
+const { sendError } = require('./utils/response');
 
 // Load biến môi trường
 dotenv.config();
@@ -13,6 +16,8 @@ const app = express();
 
 // ==================== MIDDLEWARE ====================
 app.use(cors());
+app.use(localeMiddleware);
+app.use(requestContextMiddleware);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -36,40 +41,60 @@ app.get('/', (req, res) => {
 
 // ==================== 404 HANDLER ====================
 app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: `Route ${req.originalUrl} not found.`,
+  return sendError(req, res, 404, 'COMMON_ROUTE_NOT_FOUND', {
+    route: req.originalUrl,
   });
 });
 
 // ==================== ERROR HANDLER ====================
 app.use((err, req, res, next) => {
   console.error('❌ Error:', err.stack);
+  console.error('❌ Error context:', {
+    requestId: req.requestId,
+    method: req.method,
+    url: req.originalUrl,
+    userId: req.user?._id?.toString?.(),
+    client: req.client,
+  });
 
   let statusCode = 500;
-  let message = 'Internal server error.';
+  let code = 'COMMON_INTERNAL_ERROR';
+  let extra = {};
 
   if (err.name === 'CastError') {
     statusCode = 400;
-    message = 'Invalid ID format.';
+    code = 'COMMON_INVALID_ID';
+  }
+
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    statusCode = 400;
+    code = 'COMMON_INVALID_JSON';
   }
 
   if (err.name === 'ValidationError') {
     statusCode = 400;
-    message = Object.values(err.errors)
-      .map((val) => val.message)
-      .join(', ');
+    code = 'COMMON_VALIDATION_ERROR';
+    extra = {
+      details: Object.values(err.errors).map((val) => val.message),
+    };
   }
 
   if (err.code === 11000) {
     statusCode = 409;
-    message = 'Duplicate field value. This resource already exists.';
+    code = 'COMMON_DUPLICATE_RESOURCE';
   }
 
-  res.status(statusCode).json({
-    success: false,
-    message,
-  });
+  if (err.code === 'UPLOAD_INVALID_FILE_TYPE') {
+    statusCode = 400;
+    code = 'USER_AVATAR_INVALID_FILE_TYPE';
+  }
+
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    statusCode = 400;
+    code = 'USER_AVATAR_TOO_LARGE';
+  }
+
+  return sendError(req, res, statusCode, code, {}, extra);
 });
 
 // ==================== START SERVER ====================

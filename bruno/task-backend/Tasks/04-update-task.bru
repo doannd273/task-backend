@@ -12,6 +12,15 @@ put {
 
 headers {
   Content-Type: application/json
+  Accept-Language: {{language}}
+  X-Request-Id: {{requestId}}
+  X-App-Version-Code: {{appVersionCode}}
+  X-App-Version-Name: {{appVersionName}}
+  X-Platform: {{platform}}
+  X-OS-Version: {{osVersion}}
+  X-Device-Model: {{deviceModel}}
+  X-Device-Id: {{deviceId}}
+  User-Agent: {{userAgent}}
 }
 
 auth:bearer {

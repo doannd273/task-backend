@@ -1,15 +1,13 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { sendError } = require('../utils/response');
 
 const authMiddleware = async (req, res, next) => {
   try {
     // Lấy token từ header Authorization: Bearer <token>
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
-        success: false,
-        message: 'Access denied. No token provided.',
-      });
+      return sendError(req, res, 401, 'AUTH_ACCESS_TOKEN_REQUIRED');
     }
 
     const token = authHeader.split(' ')[1];
@@ -20,10 +18,7 @@ const authMiddleware = async (req, res, next) => {
     // Tìm user trong DB
     const user = await User.findById(decoded.userId);
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'User not found.',
-      });
+      return sendError(req, res, 401, 'AUTH_USER_NOT_FOUND');
     }
 
     // Gắn user vào request để controller sử dụng
@@ -31,16 +26,9 @@ const authMiddleware = async (req, res, next) => {
     next();
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({
-        success: false,
-        message: 'Token expired.',
-        code: 'TOKEN_EXPIRED',
-      });
+      return sendError(req, res, 401, 'AUTH_TOKEN_EXPIRED');
     }
-    return res.status(401).json({
-      success: false,
-      message: 'Invalid token.',
-    });
+    return sendError(req, res, 401, 'AUTH_INVALID_TOKEN');
   }
 };
 

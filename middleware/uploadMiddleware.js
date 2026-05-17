@@ -27,7 +27,9 @@ const fileFilter = (req, file, cb) => {
   if (allowedMimeTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Only JPG, PNG and WEBP are allowed.'), false);
+    const error = new Error('Invalid file type. Only JPG, PNG and WEBP are allowed.');
+    error.code = 'UPLOAD_INVALID_FILE_TYPE';
+    cb(error, false);
   }
 };
 

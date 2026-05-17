@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Conversation = require('../models/Conversation');
 const User = require('../models/User');
+const { sendError } = require('../utils/response');
 
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
@@ -11,22 +12,22 @@ const createConversation = async (req, res) => {
     const currentUserId = req.user._id;
 
     if (!['private', 'group'].includes(type)) {
-      return res.status(400).json({ success: false, message: 'Invalid conversation type' });
+      return sendError(req, res, 400, 'CONVERSATION_INVALID_TYPE');
     }
 
     if (!participantIds || !Array.isArray(participantIds)) {
-      return res.status(400).json({ success: false, message: 'participantIds must be an array' });
+      return sendError(req, res, 400, 'CONVERSATION_PARTICIPANT_IDS_REQUIRED_ARRAY');
     }
 
     // Luôn bao gồm người tạo vào danh sách participants
     const participants = [...new Set([currentUserId.toString(), ...participantIds])];
 
     if (type === 'private' && participants.length !== 2) {
-      return res.status(400).json({ success: false, message: 'Private conversation requires exactly 2 participants' });
+      return sendError(req, res, 400, 'CONVERSATION_PRIVATE_REQUIRES_TWO_PARTICIPANTS');
     }
 
     if (type === 'group' && !name) {
-      return res.status(400).json({ success: false, message: 'Group conversation requires a name' });
+      return sendError(req, res, 400, 'CONVERSATION_GROUP_NAME_REQUIRED');
     }
 
     // Nếu là chat private, kiểm tra xem đã tồn tại chưa
@@ -44,7 +45,7 @@ const createConversation = async (req, res) => {
     // Validate participants
     const usersCount = await User.countDocuments({ _id: { $in: participants } });
     if (usersCount !== participants.length) {
-      return res.status(400).json({ success: false, message: 'One or more invalid participant IDs' });
+      return sendError(req, res, 400, 'CONVERSATION_INVALID_PARTICIPANTS');
     }
 
     const conversation = await Conversation.create({
@@ -57,7 +58,7 @@ const createConversation = async (req, res) => {
     res.status(201).json({ success: true, data: conversation });
   } catch (error) {
     console.error('Create conversation error:', error);
-    res.status(500).json({ success: false, message: 'Failed to create conversation' });
+    return sendError(req, res, 500, 'CONVERSATION_CREATE_FAILED');
   }
 };
 
@@ -90,7 +91,7 @@ const getConversations = async (req, res) => {
     });
   } catch (error) {
     console.error('Get conversations error:', error);
-    res.status(500).json({ success: false, message: 'Failed to retrieve conversations' });
+    return sendError(req, res, 500, 'CONVERSATION_RETRIEVE_FAILED');
   }
 };
 
@@ -98,7 +99,7 @@ const getConversations = async (req, res) => {
 const getConversationDetails = async (req, res) => {
   try {
     const { id } = req.params;
-    if (!isValidId(id)) return res.status(400).json({ success: false, message: 'Invalid ID' });
+    if (!isValidId(id)) return sendError(req, res, 400, 'CONVERSATION_INVALID_ID');
 
     const conversation = await Conversation.findOne({
       _id: id,
@@ -106,13 +107,13 @@ const getConversationDetails = async (req, res) => {
     }).populate('participants', '_id email avatar phone');
 
     if (!conversation) {
-      return res.status(404).json({ success: false, message: 'Conversation not found or access denied' });
+      return sendError(req, res, 404, 'CONVERSATION_NOT_FOUND_OR_ACCESS_DENIED');
     }
 
     res.status(200).json({ success: true, data: conversation });
   } catch (error) {
     console.error('Get conversation details error:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    return sendError(req, res, 500, 'COMMON_INTERNAL_ERROR');
   }
 };
 
@@ -122,15 +123,15 @@ const updateConversation = async (req, res) => {
     const { id } = req.params;
     const { name } = req.body;
 
-    if (!isValidId(id)) return res.status(400).json({ success: false, message: 'Invalid ID' });
-    if (!name) return res.status(400).json({ success: false, message: 'Name is required' });
+    if (!isValidId(id)) return sendError(req, res, 400, 'CONVERSATION_INVALID_ID');
+    if (!name) return sendError(req, res, 400, 'CONVERSATION_NAME_REQUIRED');
 
     const conversation = await Conversation.findOne({ _id: id, participants: req.user._id });
     
-    if (!conversation) return res.status(404).json({ success: false, message: 'Conversation not found' });
-    if (conversation.type === 'private') return res.status(400).json({ success: false, message: 'Cannot rename private conversation' });
+    if (!conversation) return sendError(req, res, 404, 'CONVERSATION_NOT_FOUND');
+    if (conversation.type === 'private') return sendError(req, res, 400, 'CONVERSATION_PRIVATE_RENAME_FORBIDDEN');
     if (conversation.creator.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ success: false, message: 'Only creator can rename' });
+      return sendError(req, res, 403, 'CONVERSATION_CREATOR_RENAME_REQUIRED');
     }
 
     conversation.name = name;
@@ -139,7 +140,7 @@ const updateConversation = async (req, res) => {
     res.status(200).json({ success: true, data: conversation });
   } catch (error) {
     console.error('Update conversation error:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    return sendError(req, res, 500, 'COMMON_INTERNAL_ERROR');
   }
 };
 
@@ -147,18 +148,18 @@ const updateConversation = async (req, res) => {
 const deleteConversation = async (req, res) => {
   try {
     const { id } = req.params;
-    if (!isValidId(id)) return res.status(400).json({ success: false, message: 'Invalid ID' });
+    if (!isValidId(id)) return sendError(req, res, 400, 'CONVERSATION_INVALID_ID');
 
     const conversation = await Conversation.findOne({ _id: id });
-    if (!conversation) return res.status(404).json({ success: false, message: 'Conversation not found' });
+    if (!conversation) return sendError(req, res, 404, 'CONVERSATION_NOT_FOUND');
     
     // Yêu cầu là người tạo mới được xoá, hoặc nếu là private thì cả 2 đều có quyền xoá lịch sử
     if (conversation.type === 'group' && conversation.creator.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ success: false, message: 'Only creator can delete this conversation' });
+      return sendError(req, res, 403, 'CONVERSATION_CREATOR_DELETE_REQUIRED');
     }
     
     if (conversation.type === 'private' && !conversation.participants.includes(req.user._id)) {
-      return res.status(403).json({ success: false, message: 'Access denied' });
+      return sendError(req, res, 403, 'COMMON_ACCESS_DENIED');
     }
 
     // Ở đây ta có thể xóa mềm hoặc cứng. Vì yêu cầu cơ bản, ta xoá cứng luôn (kéo theo phải xoá messages nữa).
@@ -169,7 +170,7 @@ const deleteConversation = async (req, res) => {
     res.status(200).json({ success: true, data: { message: 'Conversation deleted' } });
   } catch (error) {
     console.error('Delete conv error:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    return sendError(req, res, 500, 'COMMON_INTERNAL_ERROR');
   }
 };
 
@@ -181,15 +182,15 @@ const addParticipant = async (req, res) => {
 
     const conversation = await Conversation.findOne({ _id: id });
     if (!conversation || conversation.type === 'private') {
-      return res.status(404).json({ success: false, message: 'Group not found' });
+      return sendError(req, res, 404, 'CONVERSATION_GROUP_NOT_FOUND');
     }
     
     if (conversation.creator.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ success: false, message: 'Only creator can add participants' });
+      return sendError(req, res, 403, 'CONVERSATION_CREATOR_ADD_REQUIRED');
     }
 
     if (conversation.participants.includes(userId)) {
-      return res.status(400).json({ success: false, message: 'User already in group' });
+      return sendError(req, res, 400, 'CONVERSATION_USER_ALREADY_IN_GROUP');
     }
 
     conversation.participants.push(userId);
@@ -198,7 +199,7 @@ const addParticipant = async (req, res) => {
     res.status(200).json({ success: true, data: conversation });
   } catch (error) {
     console.error('Add participant error:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    return sendError(req, res, 500, 'COMMON_INTERNAL_ERROR');
   }
 };
 
@@ -208,12 +209,12 @@ const removeParticipant = async (req, res) => {
 
     const conversation = await Conversation.findOne({ _id: id });
     if (!conversation || conversation.type === 'private') {
-      return res.status(404).json({ success: false, message: 'Group not found' });
+      return sendError(req, res, 404, 'CONVERSATION_GROUP_NOT_FOUND');
     }
     
     // Có thể rời nếu userId = chính mình, nếu kích người khác thì phải là creator
     if (req.user._id.toString() !== userId && conversation.creator.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ success: false, message: 'Access denied' });
+      return sendError(req, res, 403, 'COMMON_ACCESS_DENIED');
     }
 
     conversation.participants.pull(userId);
@@ -222,7 +223,7 @@ const removeParticipant = async (req, res) => {
     res.status(200).json({ success: true, data: { message: 'Participant removed' } });
   } catch (error) {
     console.error('Remove participant error:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    return sendError(req, res, 500, 'COMMON_INTERNAL_ERROR');
   }
 };
 
@@ -234,7 +235,7 @@ const getParticipants = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const conversation = await Conversation.findOne({ _id: id, participants: req.user._id });
-    if (!conversation) return res.status(404).json({ success: false, message: 'Conversation not found' });
+    if (!conversation) return sendError(req, res, 404, 'CONVERSATION_NOT_FOUND');
     
     // Thủ thuật pagination list nhúng:
     const totalItems = conversation.participants.length;
@@ -253,7 +254,7 @@ const getParticipants = async (req, res) => {
     });
   } catch (error) {
     console.error('Get participant error:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    return sendError(req, res, 500, 'COMMON_INTERNAL_ERROR');
   }
 };
 
