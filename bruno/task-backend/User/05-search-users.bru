@@ -31,3 +31,117 @@ params:query {
 auth:bearer {
   token: {{accessToken}}
 }
+
+docs {
+  # Search Users
+
+  ## Mô tả
+
+  Tìm kiếm user theo `keyword` — so khớp với `email` hoặc `fullName` (case-insensitive, regex). Kết quả loại trừ người dùng đang đăng nhập. Dùng để tìm người dùng trước khi thêm vào conversation.
+
+  **Domain:** User — quản lý thông tin hồ sơ người dùng.
+
+  **URL:** `GET /api/user/searchUsers`
+
+  ---
+
+  ## cURL
+
+  ```bash
+  curl -X GET "{{baseUrl}}/api/user/searchUsers?keyword=nguyen&page=1&limit=10" \
+    -H "Authorization: Bearer {{accessToken}}" \
+    -H "Accept-Language: vi" \
+    -H "X-Request-Id: req-005" \
+    -H "X-App-Version-Code: 10" \
+    -H "X-App-Version-Name: 1.0.0" \
+    -H "X-Platform: android" \
+    -H "X-OS-Version: 14" \
+    -H "X-Device-Model: Pixel 7" \
+    -H "X-Device-Id: device-xyz" \
+    -H "User-Agent: TaskApp/1.0.0"
+  ```
+
+  ---
+
+  ## Headers
+
+  | Header | Bắt buộc | Mô tả |
+  |---|---|---|
+  | `Authorization` | ✅ | Bearer token xác thực người dùng |
+  | `Accept-Language` | ✅ | Ngôn ngữ phản hồi lỗi (`vi`, `en`) |
+  | `X-Request-Id` | ✅ | ID định danh request, dùng để trace log |
+  | `X-App-Version-Code` | ✅ | Version code của app (số nguyên) |
+  | `X-App-Version-Name` | ✅ | Version name của app (vd: `1.0.0`) |
+  | `X-Platform` | ✅ | Nền tảng client (`android`, `ios`, `web`) |
+  | `X-OS-Version` | ✅ | Phiên bản OS của thiết bị |
+  | `X-Device-Model` | ✅ | Model thiết bị (vd: `Pixel 7`, `iPhone 15`) |
+  | `X-Device-Id` | ✅ | ID duy nhất của thiết bị |
+  | `User-Agent` | ✅ | Thông tin client app |
+
+  ---
+
+  ## Query Params
+
+  | Param | Kiểu | Bắt buộc | Mô tả |
+  |---|---|---|---|
+  | `keyword` | `string` | ✅ | Từ khóa tìm kiếm — so khớp với `email` hoặc `fullName` (case-insensitive) |
+  | `page` | `number` | ❌ | Trang hiện tại — mặc định `1`, tối thiểu `1` |
+  | `limit` | `number` | ❌ | Số kết quả mỗi trang — mặc định `10`, tối thiểu `1` |
+
+  ---
+
+  ## Response
+
+  ### ✅ Success — 200 OK
+
+  ```json
+  {
+    "success": true,
+    "data": {
+      "users": [
+        {
+          "_id": "664u2...",
+          "fullName": "Nguyen Van B",
+          "email": "b@example.com",
+          "avatar": "/uploads/avatars/b.jpg",
+          "phone": "+84901234568",
+          "createdAt": "2024-02-01T00:00:00.000Z"
+        }
+      ],
+      "totalItems": 3,
+      "totalPages": 1,
+      "currentPage": 1
+    }
+  }
+  ```
+
+  | Field | Kiểu | Mô tả |
+  |---|---|---|
+  | `success` | `boolean` | `true` nếu thành công |
+  | `data.users` | `array` | Danh sách user khớp kết quả tìm kiếm |
+  | `data.users[]._id` | `string` | MongoDB ObjectId của user |
+  | `data.users[].fullName` | `string` | Tên hiển thị |
+  | `data.users[].email` | `string` | Email |
+  | `data.users[].avatar` | `string` | URL ảnh đại diện |
+  | `data.users[].phone` | `string` | Số điện thoại |
+  | `data.users[].createdAt` | `string` | ISO 8601 — ngày tạo tài khoản |
+  | `data.totalItems` | `number` | Tổng số kết quả khớp |
+  | `data.totalPages` | `number` | Tổng số trang |
+  | `data.currentPage` | `number` | Trang hiện tại |
+
+  ### ❌ Error Responses
+
+  | HTTP Status | Error Code | Mô tả |
+  |---|---|---|
+  | `401` | `UNAUTHORIZED` | Access token không hợp lệ hoặc hết hạn |
+  | `500` | `USER_SEARCH_FAILED` | Lỗi server không xác định |
+
+  ---
+
+  ## Notes
+
+  - Nếu `keyword` rỗng hoặc chỉ có whitespace, API trả về `{ users: [], totalItems: 0 }` — không tìm kiếm toàn bộ DB.
+  - Kết quả **luôn loại trừ** người dùng đang đăng nhập khỏi danh sách.
+  - Tìm kiếm bằng regex case-insensitive — `"nguyen"` sẽ khớp với `"Nguyen Van A"` và `"nguyen@example.com"`.
+  - Chỉ trả về các field an toàn: `_id`, `fullName`, `email`, `avatar`, `phone`, `createdAt` — không trả về `password`, `refreshToken`.
+}

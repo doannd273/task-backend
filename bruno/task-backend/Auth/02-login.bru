@@ -43,3 +43,108 @@ script:post-response {
     bru.setEnvVar("refreshToken", refreshToken, { persist: true });
   }
 }
+
+docs {
+  # Login
+
+  ## Mô tả
+
+  Đăng nhập bằng email và mật khẩu. Trả về `accessToken` (ngắn hạn) và `refreshToken` (dài hạn). Mỗi lần đăng nhập tạo refresh token mới, ghi đè token cũ trong DB.
+
+  **Domain:** Auth — xác thực và quản lý phiên đăng nhập.
+
+  **URL:** `POST /api/auth/login`
+
+  ---
+
+  ## cURL
+
+  ```bash
+  curl -X POST "{{baseUrl}}/api/auth/login" \
+    -H "Content-Type: application/json" \
+    -H "Accept-Language: vi" \
+    -H "X-Request-Id: req-002" \
+    -H "X-App-Version-Code: 10" \
+    -H "X-App-Version-Name: 1.0.0" \
+    -H "X-Platform: android" \
+    -H "X-OS-Version: 14" \
+    -H "X-Device-Model: Pixel 7" \
+    -H "X-Device-Id: device-xyz" \
+    -H "User-Agent: TaskApp/1.0.0" \
+    -d '{"email":"user@example.com","password":"password123"}'
+  ```
+
+  ---
+
+  ## Headers
+
+  | Header | Bắt buộc | Mô tả |
+  |---|---|---|
+  | `Content-Type` | ✅ | Định dạng body — phải là `application/json` |
+  | `Accept-Language` | ✅ | Ngôn ngữ phản hồi lỗi (`vi`, `en`) |
+  | `X-Request-Id` | ✅ | ID định danh request, dùng để trace log |
+  | `X-App-Version-Code` | ✅ | Version code của app (số nguyên) |
+  | `X-App-Version-Name` | ✅ | Version name của app (vd: `1.0.0`) |
+  | `X-Platform` | ✅ | Nền tảng client (`android`, `ios`, `web`) |
+  | `X-OS-Version` | ✅ | Phiên bản OS của thiết bị |
+  | `X-Device-Model` | ✅ | Model thiết bị (vd: `Pixel 7`, `iPhone 15`) |
+  | `X-Device-Id` | ✅ | ID duy nhất của thiết bị |
+  | `User-Agent` | ✅ | Thông tin client app |
+
+  ---
+
+  ## Request Body
+
+  | Field | Kiểu | Bắt buộc | Mô tả |
+  |---|---|---|---|
+  | `email` | `string` | ✅ | Email tài khoản — trim và lowercase trước khi tìm |
+  | `password` | `string` | ✅ | Mật khẩu hiện tại |
+
+  ---
+
+  ## Response
+
+  ### ✅ Success — 200 OK
+
+  ```json
+  {
+    "success": true,
+    "data": {
+      "accessToken": "eyJhbGci...",
+      "refreshToken": "eyJhbGci...",
+      "user": {
+        "_id": "664abc123...",
+        "email": "user@example.com",
+        "fullName": "Nguyen Van A",
+        "avatar": ""
+      }
+    }
+  }
+  ```
+
+  | Field | Kiểu | Mô tả |
+  |---|---|---|
+  | `success` | `boolean` | `true` nếu thành công |
+  | `data.accessToken` | `string` | JWT ngắn hạn (mặc định 15 phút) — dùng cho mọi request cần xác thực |
+  | `data.refreshToken` | `string` | JWT dài hạn (mặc định 7 ngày) — dùng để refresh token |
+  | `data.user._id` | `string` | MongoDB ObjectId |
+  | `data.user.email` | `string` | Email đã lowercase |
+  | `data.user.fullName` | `string` | Tên hiển thị |
+  | `data.user.avatar` | `string` | URL ảnh đại diện (rỗng nếu chưa upload) |
+
+  ### ❌ Error Responses
+
+  | HTTP Status | Error Code | Mô tả |
+  |---|---|---|
+  | `400` | `AUTH_LOGIN_REQUIRED_FIELDS` | Thiếu `email` hoặc `password` |
+  | `401` | `AUTH_INVALID_CREDENTIALS` | Email không tồn tại hoặc mật khẩu sai |
+  | `500` | `AUTH_LOGIN_FAILED` | Lỗi server không xác định |
+
+  ---
+
+  ## Notes
+
+  - Script `post-response` tự động lưu `accessToken` và `refreshToken` vào environment variable của Bruno.
+  - Server trả cùng một lỗi `AUTH_INVALID_CREDENTIALS` cho cả email không tồn tại lẫn sai mật khẩu — tránh lộ thông tin tài khoản.
+  - Mỗi lần login tạo refresh token mới, token cũ bị vô hiệu hóa.
+}

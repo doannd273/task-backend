@@ -32,3 +32,113 @@ body:json {
     "name": "Renamed Team Chat"
   }
 }
+
+docs {
+  # Update Conversation
+
+  ## Mô tả
+
+  Đổi tên nhóm chat. Chỉ áp dụng cho `group` conversation, chỉ người tạo nhóm (`creator`) mới có quyền đổi tên.
+
+  **Domain:** Conversation — quản lý các cuộc trò chuyện (chat).
+
+  **URL:** `PUT /api/conversations/updateConversation/:id`
+
+  ---
+
+  ## cURL
+
+  ```bash
+  curl -X PUT "{{baseUrl}}/api/conversations/updateConversation/{{conversationId}}" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer {{accessToken}}" \
+    -H "Accept-Language: vi" \
+    -H "X-Request-Id: req-004" \
+    -H "X-App-Version-Code: 10" \
+    -H "X-App-Version-Name: 1.0.0" \
+    -H "X-Platform: android" \
+    -H "X-OS-Version: 14" \
+    -H "X-Device-Model: Pixel 7" \
+    -H "X-Device-Id: device-xyz" \
+    -H "User-Agent: TaskApp/1.0.0" \
+    -d '{"name":"New Group Name"}'
+  ```
+
+  ---
+
+  ## Headers
+
+  | Header | Bắt buộc | Mô tả |
+  |---|---|---|
+  | `Content-Type` | ✅ | Định dạng body — phải là `application/json` |
+  | `Authorization` | ✅ | Bearer token xác thực người dùng |
+  | `Accept-Language` | ✅ | Ngôn ngữ phản hồi lỗi (`vi`, `en`) |
+  | `X-Request-Id` | ✅ | ID định danh request, dùng để trace log |
+  | `X-App-Version-Code` | ✅ | Version code của app (số nguyên) |
+  | `X-App-Version-Name` | ✅ | Version name của app (vd: `1.0.0`) |
+  | `X-Platform` | ✅ | Nền tảng client (`android`, `ios`, `web`) |
+  | `X-OS-Version` | ✅ | Phiên bản OS của thiết bị |
+  | `X-Device-Model` | ✅ | Model thiết bị (vd: `Pixel 7`, `iPhone 15`) |
+  | `X-Device-Id` | ✅ | ID duy nhất của thiết bị |
+  | `User-Agent` | ✅ | Thông tin client app |
+
+  ---
+
+  ## Path Params
+
+  | Param | Kiểu | Bắt buộc | Mô tả |
+  |---|---|---|---|
+  | `id` | `string` | ✅ | MongoDB ObjectId của conversation cần đổi tên |
+
+  ## Request Body
+
+  | Field | Kiểu | Bắt buộc | Mô tả |
+  |---|---|---|---|
+  | `name` | `string` | ✅ | Tên mới của nhóm |
+
+  ---
+
+  ## Response
+
+  ### ✅ Success — 200 OK
+
+  ```json
+  {
+    "success": true,
+    "data": {
+      "_id": "664conv...",
+      "type": "group",
+      "name": "New Group Name",
+      "creator": "664creator...",
+      "participants": ["664u1...", "664u2..."],
+      "lastMessageAt": "2026-05-20T10:00:00.000Z",
+      "createdAt": "2026-05-01T00:00:00.000Z",
+      "updatedAt": "2026-05-22T08:00:00.000Z"
+    }
+  }
+  ```
+
+  | Field | Kiểu | Mô tả |
+  |---|---|---|
+  | `success` | `boolean` | `true` nếu thành công |
+  | `data` | `object` | Toàn bộ conversation sau khi cập nhật |
+
+  ### ❌ Error Responses
+
+  | HTTP Status | Error Code | Mô tả |
+  |---|---|---|
+  | `400` | `CONVERSATION_INVALID_ID` | `id` không phải MongoDB ObjectId hợp lệ |
+  | `400` | `CONVERSATION_NAME_REQUIRED` | Body thiếu field `name` |
+  | `400` | `CONVERSATION_PRIVATE_RENAME_FORBIDDEN` | Không thể đổi tên private conversation |
+  | `401` | `UNAUTHORIZED` | Access token không hợp lệ hoặc hết hạn |
+  | `403` | `CONVERSATION_CREATOR_RENAME_REQUIRED` | Chỉ người tạo nhóm mới có quyền đổi tên |
+  | `404` | `CONVERSATION_NOT_FOUND` | Conversation không tồn tại hoặc user không phải thành viên |
+  | `500` | `COMMON_INTERNAL_ERROR` | Lỗi server không xác định |
+
+  ---
+
+  ## Notes
+
+  - Chỉ áp dụng cho `group` conversation — private conversation không có tên và không thể đổi tên.
+  - Chỉ `creator` của nhóm mới có quyền đổi tên, các thành viên thường không thể.
+}

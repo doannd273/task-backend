@@ -21,3 +21,74 @@ headers {
   X-Device-Id: {{deviceId}}
   User-Agent: {{userAgent}}
 }
+
+docs {
+  # Health Check
+
+  ## Mô tả
+
+  Kiểm tra trạng thái hoạt động của server. Không yêu cầu xác thực. Dùng để ping server, kiểm tra uptime, hoặc monitor health từ load balancer / CI pipeline.
+
+  **Domain:** System — kiểm tra hệ thống.
+
+  **URL:** `GET /`
+
+  ---
+
+  ## cURL
+
+  ```bash
+  curl -X GET "{{baseUrl}}/" \
+    -H "Accept-Language: vi" \
+    -H "X-Request-Id: req-001" \
+    -H "X-App-Version-Code: 10" \
+    -H "X-App-Version-Name: 1.0.0" \
+    -H "X-Platform: android" \
+    -H "X-OS-Version: 14" \
+    -H "X-Device-Model: Pixel 7" \
+    -H "X-Device-Id: device-xyz" \
+    -H "User-Agent: TaskApp/1.0.0"
+  ```
+
+  ---
+
+  ## Headers
+
+  | Header | Bắt buộc | Mô tả |
+  |---|---|---|
+  | `Accept-Language` | ❌ | Ngôn ngữ phản hồi (`vi`, `en`) |
+  | `X-Request-Id` | ❌ | ID định danh request, dùng để trace log |
+  | `X-App-Version-Code` | ❌ | Version code của app (số nguyên) |
+  | `X-App-Version-Name` | ❌ | Version name của app (vd: `1.0.0`) |
+  | `X-Platform` | ❌ | Nền tảng client (`android`, `ios`, `web`) |
+  | `X-OS-Version` | ❌ | Phiên bản OS của thiết bị |
+  | `X-Device-Model` | ❌ | Model thiết bị |
+  | `X-Device-Id` | ❌ | ID duy nhất của thiết bị |
+  | `User-Agent` | ❌ | Thông tin client app |
+
+  ---
+
+  ## Response
+
+  ### ✅ Success — 200 OK
+
+  ```json
+  {
+    "success": true,
+    "message": "🚀 Task Manager API is running!"
+  }
+  ```
+
+  | Field | Kiểu | Mô tả |
+  |---|---|---|
+  | `success` | `boolean` | `true` nếu server đang hoạt động |
+  | `message` | `string` | Thông báo trạng thái server |
+
+  ---
+
+  ## Notes
+
+  - Không có logic xác thực hay truy vấn DB — response luôn trả về `200` nếu server còn sống.
+  - Tất cả headers đều **optional** với API này — dùng để test nhanh không cần setup environment.
+  - Nếu server đang khởi động lại hoặc bị crash, request này sẽ timeout hoặc trả về lỗi connection — dùng để detect downtime.
+}

@@ -25,3 +25,96 @@ headers {
 auth:bearer {
   token: {{accessToken}}
 }
+
+docs {
+  # Delete Conversation
+
+  ## Mô tả
+
+  Xóa vĩnh viễn một conversation và toàn bộ tin nhắn bên trong. Với `group`: chỉ người tạo (`creator`) có quyền xóa. Với `private`: bất kỳ participant nào đều có thể xóa. Thao tác không thể hoàn tác.
+
+  **Domain:** Conversation — quản lý các cuộc trò chuyện (chat).
+
+  **URL:** `DELETE /api/conversations/deleteConversation/:id`
+
+  ---
+
+  ## cURL
+
+  ```bash
+  curl -X DELETE "{{baseUrl}}/api/conversations/deleteConversation/{{conversationId}}" \
+    -H "Authorization: Bearer {{accessToken}}" \
+    -H "Accept-Language: vi" \
+    -H "X-Request-Id: req-005" \
+    -H "X-App-Version-Code: 10" \
+    -H "X-App-Version-Name: 1.0.0" \
+    -H "X-Platform: android" \
+    -H "X-OS-Version: 14" \
+    -H "X-Device-Model: Pixel 7" \
+    -H "X-Device-Id: device-xyz" \
+    -H "User-Agent: TaskApp/1.0.0"
+  ```
+
+  ---
+
+  ## Headers
+
+  | Header | Bắt buộc | Mô tả |
+  |---|---|---|
+  | `Authorization` | ✅ | Bearer token xác thực người dùng |
+  | `Accept-Language` | ✅ | Ngôn ngữ phản hồi lỗi (`vi`, `en`) |
+  | `X-Request-Id` | ✅ | ID định danh request, dùng để trace log |
+  | `X-App-Version-Code` | ✅ | Version code của app (số nguyên) |
+  | `X-App-Version-Name` | ✅ | Version name của app (vd: `1.0.0`) |
+  | `X-Platform` | ✅ | Nền tảng client (`android`, `ios`, `web`) |
+  | `X-OS-Version` | ✅ | Phiên bản OS của thiết bị |
+  | `X-Device-Model` | ✅ | Model thiết bị (vd: `Pixel 7`, `iPhone 15`) |
+  | `X-Device-Id` | ✅ | ID duy nhất của thiết bị |
+  | `User-Agent` | ✅ | Thông tin client app |
+
+  ---
+
+  ## Path Params
+
+  | Param | Kiểu | Bắt buộc | Mô tả |
+  |---|---|---|---|
+  | `id` | `string` | ✅ | MongoDB ObjectId của conversation cần xóa |
+
+  ---
+
+  ## Response
+
+  ### ✅ Success — 200 OK
+
+  ```json
+  {
+    "success": true,
+    "data": {
+      "message": "Conversation deleted"
+    }
+  }
+  ```
+
+  | Field | Kiểu | Mô tả |
+  |---|---|---|
+  | `success` | `boolean` | `true` nếu thành công |
+  | `data.message` | `string` | Thông báo xác nhận xóa |
+
+  ### ❌ Error Responses
+
+  | HTTP Status | Error Code | Mô tả |
+  |---|---|---|
+  | `400` | `CONVERSATION_INVALID_ID` | `id` không phải MongoDB ObjectId hợp lệ |
+  | `401` | `UNAUTHORIZED` | Access token không hợp lệ hoặc hết hạn |
+  | `403` | `CONVERSATION_CREATOR_DELETE_REQUIRED` | Chỉ người tạo nhóm mới có quyền xóa group conversation |
+  | `403` | `COMMON_ACCESS_DENIED` | User không phải participant của private conversation |
+  | `404` | `CONVERSATION_NOT_FOUND` | Conversation không tồn tại |
+  | `500` | `COMMON_INTERNAL_ERROR` | Lỗi server không xác định |
+
+  ---
+
+  ## Notes
+
+  - Xóa cứng (hard delete) — toàn bộ `Message` trong conversation bị xóa theo, không thể khôi phục.
+  - Phân quyền xóa: `group` → chỉ `creator`; `private` → bất kỳ participant nào.
+}

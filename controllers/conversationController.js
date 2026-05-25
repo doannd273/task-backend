@@ -2,8 +2,26 @@ const mongoose = require('mongoose');
 const Conversation = require('../models/Conversation');
 const User = require('../models/User');
 const { sendError } = require('../utils/response');
+const { formatUserResponse, formatUsersResponse } = require('../utils/userResponse');
 
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
+
+const formatConversationResponse = (req, conversation) => {
+  const obj = typeof conversation.toJSON === 'function' ? conversation.toJSON() : conversation;
+
+  if (Array.isArray(obj.participants)) {
+    obj.participants = obj.participants.map((participant) => {
+      if (!participant || typeof participant !== 'object') return participant;
+      return formatUserResponse(req, participant);
+    });
+  }
+
+  if (obj.lastMessage?.senderId && typeof obj.lastMessage.senderId === 'object') {
+    obj.lastMessage.senderId = formatUserResponse(req, obj.lastMessage.senderId);
+  }
+
+  return obj;
+};
 
 // ==================== CREATE CONVERSATION ====================
 const createConversation = async (req, res) => {
@@ -83,7 +101,7 @@ const getConversations = async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        conversations,
+        conversations: conversations.map((conversation) => formatConversationResponse(req, conversation)),
         totalItems,
         totalPages: Math.ceil(totalItems / limit),
         currentPage: page,
@@ -110,7 +128,7 @@ const getConversationDetails = async (req, res) => {
       return sendError(req, res, 404, 'CONVERSATION_NOT_FOUND_OR_ACCESS_DENIED');
     }
 
-    res.status(200).json({ success: true, data: conversation });
+    res.status(200).json({ success: true, data: formatConversationResponse(req, conversation) });
   } catch (error) {
     console.error('Get conversation details error:', error);
     return sendError(req, res, 500, 'COMMON_INTERNAL_ERROR');
@@ -246,7 +264,7 @@ const getParticipants = async (req, res) => {
     res.status(200).json({
       success: true, 
       data: {
-        users,
+        users: formatUsersResponse(req, users),
         totalItems,
         totalPages: Math.ceil(totalItems / limit),
         currentPage: page

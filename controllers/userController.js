@@ -1,5 +1,16 @@
 const User = require('../models/User');
 const { sendError } = require('../utils/response');
+const { toAbsoluteUrl } = require('../utils/url');
+const { formatUserResponse, formatUsersResponse } = require('../utils/userResponse');
+const {
+  isAllowedUploadedImage,
+  removeUploadedFile,
+} = require('../middleware/uploadMiddleware');
+
+const isAllowedAvatarPath = (value) => (
+  value === '' ||
+  /^\/uploads\/avatars\/[^/]+\.(jpg|jpeg|png|webp)$/i.test(String(value || '').trim())
+);
 
 // ==================== GET PROFILE ====================
 const getProfile = async (req, res) => {
@@ -11,7 +22,7 @@ const getProfile = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: user,
+      data: formatUserResponse(req, user),
     });
   } catch (error) {
     console.error('Get profile error:', error.message);
@@ -32,7 +43,13 @@ const updateProfile = async (req, res) => {
     }
 
     // Only update allowed fields
-    if (avatar !== undefined) user.avatar = avatar;
+    if (avatar !== undefined) {
+      if (!isAllowedAvatarPath(avatar)) {
+        return sendError(req, res, 400, 'USER_AVATAR_INVALID_URL');
+      }
+
+      user.avatar = avatar;
+    }
     if (phone !== undefined) user.phone = phone;
     if (fullName !== undefined) user.fullName = fullName;
 
@@ -40,7 +57,8 @@ const updateProfile = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: user,
+      message: 'Profile updated successfully.',
+      data: formatUserResponse(req, user),
     });
   } catch (error) {
     console.error('Update profile error:', error.message);
@@ -106,21 +124,27 @@ const uploadAvatar = async (req, res) => {
       return sendError(req, res, 400, 'USER_AVATAR_FILE_REQUIRED');
     }
 
+    if (!(await isAllowedUploadedImage(req.file))) {
+      await removeUploadedFile(req.file.path);
+      return sendError(req, res, 400, 'USER_AVATAR_INVALID_FILE_TYPE');
+    }
+
     // path of uploaded file, accessible via the static URL we configured in server.js
-    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+    const avatarPath = `/uploads/avatars/${req.file.filename}`;
 
     const user = await User.findById(req.user._id);
     if (!user) {
       return sendError(req, res, 404, 'USER_NOT_FOUND');
     }
 
-    user.avatar = avatarUrl;
+    user.avatar = avatarPath;
     await user.save();
 
     res.status(200).json({
       success: true,
       data: {
-        avatar: avatarUrl,
+        avatar: toAbsoluteUrl(req, avatarPath),
+        avatarPath,
         message: 'Avatar uploaded successfully.',
       },
     });
@@ -165,7 +189,7 @@ const searchUsers = async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        users,
+        users: formatUsersResponse(req, users),
         totalItems,
         totalPages: Math.ceil(totalItems / limitNum),
         currentPage: pageNum,

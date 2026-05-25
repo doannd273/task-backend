@@ -25,3 +25,115 @@ headers {
 auth:bearer {
   token: {{accessToken}}
 }
+
+docs {
+  # Get Conversation Details
+
+  ## Mô tả
+
+  Lấy thông tin chi tiết của một conversation theo `id`. User phải là thành viên của conversation mới có quyền truy cập.
+
+  **Domain:** Conversation — quản lý các cuộc trò chuyện (chat).
+
+  **URL:** `GET /api/conversations/getConversationDetails/:id`
+
+  ---
+
+  ## cURL
+
+  ```bash
+  curl -X GET "{{baseUrl}}/api/conversations/getConversationDetails/{{conversationId}}" \
+    -H "Authorization: Bearer {{accessToken}}" \
+    -H "Accept-Language: vi" \
+    -H "X-Request-Id: req-003" \
+    -H "X-App-Version-Code: 10" \
+    -H "X-App-Version-Name: 1.0.0" \
+    -H "X-Platform: android" \
+    -H "X-OS-Version: 14" \
+    -H "X-Device-Model: Pixel 7" \
+    -H "X-Device-Id: device-xyz" \
+    -H "User-Agent: TaskApp/1.0.0"
+  ```
+
+  ---
+
+  ## Headers
+
+  | Header | Bắt buộc | Mô tả |
+  |---|---|---|
+  | `Authorization` | ✅ | Bearer token xác thực người dùng |
+  | `Accept-Language` | ✅ | Ngôn ngữ phản hồi lỗi (`vi`, `en`) |
+  | `X-Request-Id` | ✅ | ID định danh request, dùng để trace log |
+  | `X-App-Version-Code` | ✅ | Version code của app (số nguyên) |
+  | `X-App-Version-Name` | ✅ | Version name của app (vd: `1.0.0`) |
+  | `X-Platform` | ✅ | Nền tảng client (`android`, `ios`, `web`) |
+  | `X-OS-Version` | ✅ | Phiên bản OS của thiết bị |
+  | `X-Device-Model` | ✅ | Model thiết bị (vd: `Pixel 7`, `iPhone 15`) |
+  | `X-Device-Id` | ✅ | ID duy nhất của thiết bị |
+  | `User-Agent` | ✅ | Thông tin client app |
+
+  ---
+
+  ## Path Params
+
+  | Param | Kiểu | Bắt buộc | Mô tả |
+  |---|---|---|---|
+  | `id` | `string` | ✅ | MongoDB ObjectId của conversation |
+
+  ---
+
+  ## Response
+
+  ### ✅ Success — 200 OK
+
+  ```json
+  {
+    "success": true,
+    "data": {
+      "_id": "664conv...",
+      "type": "group",
+      "name": "Team Chat",
+      "creator": "664creator...",
+      "participants": [
+        { "_id": "664u1...", "email": "a@example.com", "avatar": "", "phone": "" }
+      ],
+      "lastMessage": {
+        "content": "Hello!",
+        "senderId": "664u1...",
+        "createdAt": "2026-05-20T10:00:00.000Z",
+        "type": "text"
+      },
+      "lastMessageAt": "2026-05-20T10:00:00.000Z",
+      "createdAt": "2026-05-01T00:00:00.000Z",
+      "updatedAt": "2026-05-20T10:00:00.000Z"
+    }
+  }
+  ```
+
+  | Field | Kiểu | Mô tả |
+  |---|---|---|
+  | `success` | `boolean` | `true` nếu thành công |
+  | `data._id` | `string` | MongoDB ObjectId của conversation |
+  | `data.type` | `string` | Loại: `private` hoặc `group` |
+  | `data.name` | `string` | Tên nhóm (rỗng với private) |
+  | `data.creator` | `string` | ObjectId của người tạo |
+  | `data.participants` | `array` | Danh sách participants đã populate (có `_id`, `email`, `avatar`, `phone`) |
+  | `data.lastMessage` | `object\|null` | Tin nhắn cuối — `null` nếu chưa có tin nhắn nào |
+  | `data.lastMessageAt` | `string` | ISO 8601 — thời điểm tin nhắn cuối |
+
+  ### ❌ Error Responses
+
+  | HTTP Status | Error Code | Mô tả |
+  |---|---|---|
+  | `400` | `CONVERSATION_INVALID_ID` | `id` không phải MongoDB ObjectId hợp lệ |
+  | `401` | `UNAUTHORIZED` | Access token không hợp lệ hoặc hết hạn |
+  | `404` | `CONVERSATION_NOT_FOUND_OR_ACCESS_DENIED` | Conversation không tồn tại hoặc user không phải thành viên |
+  | `500` | `COMMON_INTERNAL_ERROR` | Lỗi server không xác định |
+
+  ---
+
+  ## Notes
+
+  - `CONVERSATION_NOT_FOUND_OR_ACCESS_DENIED` bao gồm cả 2 trường hợp: conversation không tồn tại và user không phải thành viên — thiết kế chủ ý để tránh lộ thông tin.
+  - `participants` được populate với `_id`, `email`, `avatar`, `phone`.
+}

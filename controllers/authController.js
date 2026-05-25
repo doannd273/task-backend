@@ -5,6 +5,7 @@ const nodemailer = require('nodemailer');
 const User = require('../models/User');
 const { sendError } = require('../utils/response');
 const { translate } = require('../utils/i18n');
+const { toAbsoluteUrl } = require('../utils/url');
 
 const PASSWORD_RESET_OTP_TTL_MS = 10 * 60 * 1000;
 const PASSWORD_RESET_MAX_ATTEMPTS = 5;
@@ -63,7 +64,7 @@ const register = async (req, res) => {
           _id: user._id,
           email: user.email,
           fullName: user.fullName,
-          avatar: user.avatar || '',
+          avatar: toAbsoluteUrl(req, user.avatar),
         },
       },
     });
@@ -122,7 +123,7 @@ const login = async (req, res) => {
           _id: user._id,
           email: user.email,
           fullName: user.fullName,
-          avatar: user.avatar || '',
+          avatar: toAbsoluteUrl(req, user.avatar),
         },
       },
     });

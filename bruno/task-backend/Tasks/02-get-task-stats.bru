@@ -25,3 +25,116 @@ headers {
 auth:bearer {
   token: {{accessToken}}
 }
+
+docs {
+  # Get Task Stats
+
+  ## Mô tả
+
+  Lấy thống kê tổng quan về task của người dùng đang đăng nhập: số lượng theo từng trạng thái, tỉ lệ hoàn thành, và 5 task gần nhất. Dùng cho màn hình dashboard hoặc widget tóm tắt.
+
+  **Domain:** Task — quản lý công việc cá nhân của user.
+
+  **URL:** `GET /api/tasks/getTaskStats`
+
+  ---
+
+  ## cURL
+
+  ```bash
+  curl -X GET "{{baseUrl}}/api/tasks/getTaskStats" \
+    -H "Authorization: Bearer {{accessToken}}" \
+    -H "Accept-Language: vi" \
+    -H "X-Request-Id: req-002" \
+    -H "X-App-Version-Code: 10" \
+    -H "X-App-Version-Name: 1.0.0" \
+    -H "X-Platform: android" \
+    -H "X-OS-Version: 14" \
+    -H "X-Device-Model: Pixel 7" \
+    -H "X-Device-Id: device-xyz" \
+    -H "User-Agent: TaskApp/1.0.0"
+  ```
+
+  ---
+
+  ## Headers
+
+  | Header | Bắt buộc | Mô tả |
+  |---|---|---|
+  | `Authorization` | ✅ | Bearer token xác thực người dùng |
+  | `Accept-Language` | ✅ | Ngôn ngữ phản hồi lỗi (`vi`, `en`) |
+  | `X-Request-Id` | ✅ | ID định danh request, dùng để trace log |
+  | `X-App-Version-Code` | ✅ | Version code của app (số nguyên) |
+  | `X-App-Version-Name` | ✅ | Version name của app (vd: `1.0.0`) |
+  | `X-Platform` | ✅ | Nền tảng client (`android`, `ios`, `web`) |
+  | `X-OS-Version` | ✅ | Phiên bản OS của thiết bị |
+  | `X-Device-Model` | ✅ | Model thiết bị (vd: `Pixel 7`, `iPhone 15`) |
+  | `X-Device-Id` | ✅ | ID duy nhất của thiết bị |
+  | `User-Agent` | ✅ | Thông tin client app |
+
+  ---
+
+  ## Query Params
+
+  Không có query params.
+
+  ---
+
+  ## Response
+
+  ### ✅ Success — 200 OK
+
+  ```json
+  {
+    "success": true,
+    "data": {
+      "total": 20,
+      "todo": 5,
+      "inProgress": 8,
+      "pending": 3,
+      "done": 4,
+      "completionRate": 20.00,
+      "recentTasks": [
+        {
+          "_id": "664abc...",
+          "title": "Fix login bug",
+          "status": "in_progress",
+          "dueDate": "2026-06-01T00:00:00.000Z",
+          "createdAt": "2026-05-20T10:00:00.000Z"
+        }
+      ]
+    }
+  }
+  ```
+
+  | Field | Kiểu | Mô tả |
+  |---|---|---|
+  | `success` | `boolean` | `true` nếu thành công |
+  | `data.total` | `number` | Tổng số task của user |
+  | `data.todo` | `number` | Số task có status `todo` |
+  | `data.inProgress` | `number` | Số task có status `in_progress` |
+  | `data.pending` | `number` | Số task có status `pending` |
+  | `data.done` | `number` | Số task có status `done` |
+  | `data.completionRate` | `number` | Tỉ lệ hoàn thành (%) — `done / total * 100`, làm tròn 2 chữ số thập phân |
+  | `data.recentTasks` | `array` | 5 task mới tạo gần nhất |
+  | `data.recentTasks[]._id` | `string` | MongoDB ObjectId của task |
+  | `data.recentTasks[].title` | `string` | Tiêu đề task |
+  | `data.recentTasks[].status` | `string` | Trạng thái hiện tại |
+  | `data.recentTasks[].dueDate` | `string\|null` | Ngày đến hạn ISO 8601, hoặc `null` |
+  | `data.recentTasks[].createdAt` | `string` | ISO 8601 — thời điểm tạo |
+
+  ### ❌ Error Responses
+
+  | HTTP Status | Error Code | Mô tả |
+  |---|---|---|
+  | `401` | `UNAUTHORIZED` | Access token không hợp lệ hoặc hết hạn |
+  | `500` | `TASK_STATS_RETRIEVE_FAILED` | Lỗi server không xác định |
+
+  ---
+
+  ## Notes
+
+  - `completionRate` bằng `0` khi user chưa có task nào (`total = 0`) — tránh chia cho 0.
+  - `recentTasks` chỉ trả về các field `title`, `status`, `dueDate`, `createdAt` — không trả về `description` để giảm payload.
+  - Các count được thực hiện song song bằng `Promise.all` — không ảnh hưởng hiệu năng dù có nhiều task.
+}

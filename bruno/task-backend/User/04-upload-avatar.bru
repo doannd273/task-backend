@@ -27,5 +27,107 @@ auth:bearer {
 }
 
 body:multipart-form {
-  avatar: @file({{avatarPath}})
+  avatar: @file({{avatarPath}}) @contentType(image/png)
+}
+
+docs {
+  # Upload Avatar
+
+  ## Mô tả
+
+  Upload ảnh đại diện cho người dùng đang đăng nhập. File được lưu trên server tại `/uploads/avatars/` và URL được lưu vào field `avatar` trong DB. Dùng URL trả về để cập nhật `avatar` qua Update Profile.
+
+  **Domain:** User — quản lý thông tin hồ sơ người dùng.
+
+  **URL:** `POST /api/user/uploadAvatar`
+
+  ---
+
+  ## cURL
+
+  ```bash
+  curl -X POST "{{baseUrl}}/api/user/uploadAvatar" \
+    -H "Authorization: Bearer {{accessToken}}" \
+    -H "Accept-Language: vi" \
+    -H "X-Request-Id: req-004" \
+    -H "X-App-Version-Code: 10" \
+    -H "X-App-Version-Name: 1.0.0" \
+    -H "X-Platform: android" \
+    -H "X-OS-Version: 14" \
+    -H "X-Device-Model: Pixel 7" \
+    -H "X-Device-Id: device-xyz" \
+    -H "User-Agent: TaskApp/1.0.0" \
+    -F "avatar=@/path/to/avatar.jpg"
+  ```
+
+  ---
+
+  ## Headers
+
+  | Header | Bắt buộc | Mô tả |
+  |---|---|---|
+  | `Authorization` | ✅ | Bearer token xác thực người dùng |
+  | `Accept-Language` | ✅ | Ngôn ngữ phản hồi lỗi (`vi`, `en`) |
+  | `X-Request-Id` | ✅ | ID định danh request, dùng để trace log |
+  | `X-App-Version-Code` | ✅ | Version code của app (số nguyên) |
+  | `X-App-Version-Name` | ✅ | Version name của app (vd: `1.0.0`) |
+  | `X-Platform` | ✅ | Nền tảng client (`android`, `ios`, `web`) |
+  | `X-OS-Version` | ✅ | Phiên bản OS của thiết bị |
+  | `X-Device-Model` | ✅ | Model thiết bị (vd: `Pixel 7`, `iPhone 15`) |
+  | `X-Device-Id` | ✅ | ID duy nhất của thiết bị |
+  | `User-Agent` | ✅ | Thông tin client app |
+
+  > `Content-Type` không cần set thủ công — Bruno và client HTTP sẽ tự động thêm `multipart/form-data` kèm boundary khi gửi file.
+
+  ---
+
+  ## Request Body (multipart/form-data)
+
+  | Field | Kiểu | Bắt buộc | Mô tả |
+  |---|---|---|---|
+  | `avatar` | `file` | ✅ | File ảnh cần upload (JPG, PNG, ...) |
+
+  ---
+
+  ## Response
+
+  ### ✅ Success — 200 OK
+
+  ```json
+  {
+    "success": true,
+    "data": {
+      "avatar": "http://192.168.1.10:3000/uploads/avatars/avatar-1716200000000.jpg",
+      "avatarPath": "/uploads/avatars/avatar-1716200000000.jpg",
+      "message": "Avatar uploaded successfully."
+    }
+  }
+  ```
+
+  | Field | Kiểu | Mô tả |
+  |---|---|---|
+  | `success` | `boolean` | `true` nếu thành công |
+  | `data.avatar` | `string` | URL đầy đủ để mobile tải ảnh trực tiếp; host lấy từ `PUBLIC_BASE_URL` hoặc request host |
+  | `data.avatarPath` | `string` | Đường dẫn tương đối được lưu trong DB |
+  | `data.message` | `string` | Thông báo xác nhận |
+
+  ### ❌ Error Responses
+
+  | HTTP Status | Error Code | Mô tả |
+  |---|---|---|
+  | `400` | `USER_AVATAR_FILE_REQUIRED` | Request không có file `avatar` |
+  | `401` | `UNAUTHORIZED` | Access token không hợp lệ hoặc hết hạn |
+  | `404` | `USER_NOT_FOUND` | User không tồn tại trong DB |
+  | `500` | `USER_AVATAR_UPLOAD_FAILED` | Lỗi server không xác định |
+
+  ---
+
+  ## Notes
+
+  - Sau khi upload, field `avatar` trong DB được tự động cập nhật — không cần gọi thêm Update Profile.
+  - Field `avatar` trả về URL đầy đủ theo `PUBLIC_BASE_URL`. Khi dev local và chưa set `PUBLIC_BASE_URL`, server tự detect LAN IP lúc start.
+  - `localhost` chỉ đúng với máy đang chạy backend/Bruno; điện thoại thật phải dùng LAN IP hoặc domain public.
+  - Field `avatarPath` là path tương đối server lưu trong DB, không nên dùng trực tiếp trên mobile nếu thiếu `baseUrl`.
+  - File cũ **không bị xóa** khi upload ảnh mới — server chỉ thay đổi URL trong DB. Cần cleanup định kỳ nếu dung lượng là vấn đề.
+  - Trong Bruno, set `avatarPath` trong environment variable trỏ đến đường dẫn file ảnh trên máy local.
 }

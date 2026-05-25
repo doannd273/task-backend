@@ -30,3 +30,124 @@ params:query {
 auth:bearer {
   token: {{accessToken}}
 }
+
+docs {
+  # Get Messages
+
+  ## Mô tả
+
+  Lấy danh sách tin nhắn của một conversation, có phân trang. Kết quả sắp xếp theo `createdAt` mới nhất trước (giảm dần) — client thường đảo ngược để hiển thị chat. User phải là thành viên của conversation mới có quyền xem.
+
+  **Domain:** Message — quản lý tin nhắn trong conversation.
+
+  **URL:** `GET /api/messages/getMessages/:conversationId`
+
+  ---
+
+  ## cURL
+
+  ```bash
+  curl -X GET "{{baseUrl}}/api/messages/getMessages/{{conversationId}}?page=1&limit=20" \
+    -H "Authorization: Bearer {{accessToken}}" \
+    -H "Accept-Language: vi" \
+    -H "X-Request-Id: req-001" \
+    -H "X-App-Version-Code: 10" \
+    -H "X-App-Version-Name: 1.0.0" \
+    -H "X-Platform: android" \
+    -H "X-OS-Version: 14" \
+    -H "X-Device-Model: Pixel 7" \
+    -H "X-Device-Id: device-xyz" \
+    -H "User-Agent: TaskApp/1.0.0"
+  ```
+
+  ---
+
+  ## Headers
+
+  | Header | Bắt buộc | Mô tả |
+  |---|---|---|
+  | `Authorization` | ✅ | Bearer token xác thực người dùng |
+  | `Accept-Language` | ✅ | Ngôn ngữ phản hồi lỗi (`vi`, `en`) |
+  | `X-Request-Id` | ✅ | ID định danh request, dùng để trace log |
+  | `X-App-Version-Code` | ✅ | Version code của app (số nguyên) |
+  | `X-App-Version-Name` | ✅ | Version name của app (vd: `1.0.0`) |
+  | `X-Platform` | ✅ | Nền tảng client (`android`, `ios`, `web`) |
+  | `X-OS-Version` | ✅ | Phiên bản OS của thiết bị |
+  | `X-Device-Model` | ✅ | Model thiết bị (vd: `Pixel 7`, `iPhone 15`) |
+  | `X-Device-Id` | ✅ | ID duy nhất của thiết bị |
+  | `User-Agent` | ✅ | Thông tin client app |
+
+  ---
+
+  ## Path Params
+
+  | Param | Kiểu | Bắt buộc | Mô tả |
+  |---|---|---|---|
+  | `conversationId` | `string` | ✅ | MongoDB ObjectId của conversation |
+
+  ## Query Params
+
+  | Param | Kiểu | Bắt buộc | Mô tả |
+  |---|---|---|---|
+  | `page` | `number` | ❌ | Trang hiện tại — mặc định `1`, tối thiểu `1` |
+  | `limit` | `number` | ❌ | Số tin nhắn mỗi trang — mặc định `20`, tối thiểu `1` |
+
+  ---
+
+  ## Response
+
+  ### ✅ Success — 200 OK
+
+  ```json
+  {
+    "success": true,
+    "data": {
+      "messages": [
+        {
+          "_id": "664msg...",
+          "conversationId": "664conv...",
+          "senderId": "664u1...",
+          "content": "Hello!",
+          "type": "text",
+          "createdAt": "2026-05-20T10:05:00.000Z",
+          "updatedAt": "2026-05-20T10:05:00.000Z"
+        }
+      ],
+      "totalItems": 42,
+      "totalPages": 3,
+      "currentPage": 1
+    }
+  }
+  ```
+
+  | Field | Kiểu | Mô tả |
+  |---|---|---|
+  | `success` | `boolean` | `true` nếu thành công |
+  | `data.messages` | `array` | Danh sách tin nhắn trang hiện tại (mới nhất trước) |
+  | `data.messages[]._id` | `string` | MongoDB ObjectId của tin nhắn |
+  | `data.messages[].conversationId` | `string` | ObjectId của conversation chứa tin nhắn |
+  | `data.messages[].senderId` | `string` | ObjectId của user gửi tin |
+  | `data.messages[].content` | `string` | Nội dung tin nhắn |
+  | `data.messages[].type` | `string` | Loại tin nhắn: `text`, `image`, hoặc `system` |
+  | `data.messages[].createdAt` | `string` | ISO 8601 — thời điểm gửi |
+  | `data.totalItems` | `number` | Tổng số tin nhắn trong conversation |
+  | `data.totalPages` | `number` | Tổng số trang |
+  | `data.currentPage` | `number` | Trang hiện tại |
+
+  ### ❌ Error Responses
+
+  | HTTP Status | Error Code | Mô tả |
+  |---|---|---|
+  | `400` | `MESSAGE_INVALID_CONVERSATION_ID` | `conversationId` không phải MongoDB ObjectId hợp lệ |
+  | `401` | `UNAUTHORIZED` | Access token không hợp lệ hoặc hết hạn |
+  | `404` | `MESSAGE_CONVERSATION_NOT_FOUND_OR_ACCESS_DENIED` | Conversation không tồn tại hoặc user không phải thành viên |
+  | `500` | `MESSAGE_RETRIEVE_FAILED` | Lỗi server không xác định |
+
+  ---
+
+  ## Notes
+
+  - Kết quả sắp xếp `createdAt DESC` (mới nhất trước) — client thường đảo ngược array để hiển thị chat theo thứ tự thời gian tăng dần.
+  - `senderId` không được populate — client cần map với danh sách participants để hiển thị tên và avatar người gửi.
+  - Tin nhắn gửi qua Socket.IO sẽ xuất hiện khi gọi API này — REST và Socket cùng dùng chung một collection `messages`.
+}

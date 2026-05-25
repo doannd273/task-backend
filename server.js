@@ -5,9 +5,18 @@ const connectDB = require('./config/db');
 const localeMiddleware = require('./middleware/localeMiddleware');
 const requestContextMiddleware = require('./middleware/requestContextMiddleware');
 const { sendError } = require('./utils/response');
+const { getLanIPv4Candidates, getPreferredLanIPv4 } = require('./utils/network');
 
 // Load biến môi trường
 dotenv.config();
+
+const PORT = process.env.PORT || 3000;
+const HOST = '0.0.0.0'; // Lắng nghe trên mọi interface mạng
+const autoPublicBaseHost = process.env.DEV_BASE_API_HOST || getPreferredLanIPv4();
+
+if (!process.env.PUBLIC_BASE_URL && process.env.NODE_ENV !== 'production' && autoPublicBaseHost) {
+  process.env.PUBLIC_BASE_URL = `http://${autoPublicBaseHost}:${PORT}`;
+}
 
 // Kết nối MongoDB
 connectDB();
@@ -89,9 +98,24 @@ app.use((err, req, res, next) => {
     code = 'USER_AVATAR_INVALID_FILE_TYPE';
   }
 
-  if (err.code === 'LIMIT_FILE_SIZE') {
+  if (err.name === 'MulterError') {
     statusCode = 400;
-    code = 'USER_AVATAR_TOO_LARGE';
+
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      code = 'USER_AVATAR_TOO_LARGE';
+    } else if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+      code = 'USER_AVATAR_UNEXPECTED_FIELD';
+    } else {
+      code = 'USER_AVATAR_MULTIPART_INVALID';
+    }
+  }
+
+  if (
+    err.message === 'Multipart: Boundary not found' ||
+    err.message === 'Unexpected end of form'
+  ) {
+    statusCode = 400;
+    code = 'USER_AVATAR_MULTIPART_INVALID';
   }
 
   return sendError(req, res, statusCode, code, {}, extra);
@@ -113,21 +137,12 @@ const io = new Server(server, {
 
 socketHandler(io);
 
-const PORT = process.env.PORT || 3000;
-const HOST = '0.0.0.0'; // Lắng nghe trên mọi interface mạng
-
 server.listen(PORT, HOST, () => {
   console.log(`🚀 Server running locally on http://localhost:${PORT}`);
-  
+  console.log(`🌐 Public base URL: ${process.env.PUBLIC_BASE_URL || '(request host)'}`);
+
   // In ra IP mạng LAN để dễ copy vào app Android
-  const { networkInterfaces } = require('os');
-  const nets = networkInterfaces();
-  for (const name of Object.keys(nets)) {
-    for (const net of nets[name]) {
-      // Bỏ qua các địa chỉ nội bộ (localhost/127.0.0.1) và IPv6
-      if (net.family === 'IPv4' && !net.internal) {
-        console.log(`📱 Access from Android/LAN on http://${net.address}:${PORT}`);
-      }
-    }
+  for (const candidate of getLanIPv4Candidates()) {
+    console.log(`📱 Access from Android/LAN on http://${candidate.address}:${PORT}`);
   }
 });

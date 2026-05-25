@@ -25,3 +25,94 @@ headers {
 auth:bearer {
   token: {{accessToken}}
 }
+
+docs {
+  # Delete Task
+
+  ## Mô tả
+
+  Xóa vĩnh viễn một task theo `id`. Chỉ có thể xóa task của chính mình. Thao tác không thể hoàn tác.
+
+  **Domain:** Task — quản lý công việc cá nhân của user.
+
+  **URL:** `DELETE /api/tasks/deleteTask/:id`
+
+  ---
+
+  ## cURL
+
+  ```bash
+  curl -X DELETE "{{baseUrl}}/api/tasks/deleteTask/{{taskId}}" \
+    -H "Authorization: Bearer {{accessToken}}" \
+    -H "Accept-Language: vi" \
+    -H "X-Request-Id: req-005" \
+    -H "X-App-Version-Code: 10" \
+    -H "X-App-Version-Name: 1.0.0" \
+    -H "X-Platform: android" \
+    -H "X-OS-Version: 14" \
+    -H "X-Device-Model: Pixel 7" \
+    -H "X-Device-Id: device-xyz" \
+    -H "User-Agent: TaskApp/1.0.0"
+  ```
+
+  ---
+
+  ## Headers
+
+  | Header | Bắt buộc | Mô tả |
+  |---|---|---|
+  | `Authorization` | ✅ | Bearer token xác thực người dùng |
+  | `Accept-Language` | ✅ | Ngôn ngữ phản hồi lỗi (`vi`, `en`) |
+  | `X-Request-Id` | ✅ | ID định danh request, dùng để trace log |
+  | `X-App-Version-Code` | ✅ | Version code của app (số nguyên) |
+  | `X-App-Version-Name` | ✅ | Version name của app (vd: `1.0.0`) |
+  | `X-Platform` | ✅ | Nền tảng client (`android`, `ios`, `web`) |
+  | `X-OS-Version` | ✅ | Phiên bản OS của thiết bị |
+  | `X-Device-Model` | ✅ | Model thiết bị (vd: `Pixel 7`, `iPhone 15`) |
+  | `X-Device-Id` | ✅ | ID duy nhất của thiết bị |
+  | `User-Agent` | ✅ | Thông tin client app |
+
+  ---
+
+  ## Path Params
+
+  | Param | Kiểu | Bắt buộc | Mô tả |
+  |---|---|---|---|
+  | `id` | `string` | ✅ | MongoDB ObjectId của task cần xóa |
+
+  ---
+
+  ## Response
+
+  ### ✅ Success — 200 OK
+
+  ```json
+  {
+    "success": true,
+    "data": {
+      "message": "Task deleted successfully."
+    }
+  }
+  ```
+
+  | Field | Kiểu | Mô tả |
+  |---|---|---|
+  | `success` | `boolean` | `true` nếu thành công |
+  | `data.message` | `string` | Thông báo xác nhận xóa |
+
+  ### ❌ Error Responses
+
+  | HTTP Status | Error Code | Mô tả |
+  |---|---|---|
+  | `400` | `TASK_INVALID_ID` | `id` không phải MongoDB ObjectId hợp lệ |
+  | `401` | `UNAUTHORIZED` | Access token không hợp lệ hoặc hết hạn |
+  | `404` | `TASK_NOT_FOUND` | Task không tồn tại hoặc không thuộc về user này |
+  | `500` | `TASK_DELETE_FAILED` | Lỗi server không xác định |
+
+  ---
+
+  ## Notes
+
+  - Xóa cứng (hard delete) — không thể khôi phục sau khi xóa.
+  - `TASK_NOT_FOUND` bao gồm cả trường hợp task tồn tại nhưng không thuộc về user — server không phân biệt để tránh lộ thông tin.
+}

@@ -30,3 +30,118 @@ params:query {
 auth:bearer {
   token: {{accessToken}}
 }
+
+docs {
+  # Get Participants
+
+  ## Mô tả
+
+  Lấy danh sách thành viên của một conversation, có phân trang. User phải là thành viên của conversation mới có quyền truy cập.
+
+  **Domain:** Conversation — quản lý các cuộc trò chuyện (chat).
+
+  **URL:** `GET /api/conversations/getParticipants/:id`
+
+  ---
+
+  ## cURL
+
+  ```bash
+  curl -X GET "{{baseUrl}}/api/conversations/getParticipants/{{conversationId}}?page=1&limit=20" \
+    -H "Authorization: Bearer {{accessToken}}" \
+    -H "Accept-Language: vi" \
+    -H "X-Request-Id: req-008" \
+    -H "X-App-Version-Code: 10" \
+    -H "X-App-Version-Name: 1.0.0" \
+    -H "X-Platform: android" \
+    -H "X-OS-Version: 14" \
+    -H "X-Device-Model: Pixel 7" \
+    -H "X-Device-Id: device-xyz" \
+    -H "User-Agent: TaskApp/1.0.0"
+  ```
+
+  ---
+
+  ## Headers
+
+  | Header | Bắt buộc | Mô tả |
+  |---|---|---|
+  | `Authorization` | ✅ | Bearer token xác thực người dùng |
+  | `Accept-Language` | ✅ | Ngôn ngữ phản hồi lỗi (`vi`, `en`) |
+  | `X-Request-Id` | ✅ | ID định danh request, dùng để trace log |
+  | `X-App-Version-Code` | ✅ | Version code của app (số nguyên) |
+  | `X-App-Version-Name` | ✅ | Version name của app (vd: `1.0.0`) |
+  | `X-Platform` | ✅ | Nền tảng client (`android`, `ios`, `web`) |
+  | `X-OS-Version` | ✅ | Phiên bản OS của thiết bị |
+  | `X-Device-Model` | ✅ | Model thiết bị (vd: `Pixel 7`, `iPhone 15`) |
+  | `X-Device-Id` | ✅ | ID duy nhất của thiết bị |
+  | `User-Agent` | ✅ | Thông tin client app |
+
+  ---
+
+  ## Path Params
+
+  | Param | Kiểu | Bắt buộc | Mô tả |
+  |---|---|---|---|
+  | `id` | `string` | ✅ | MongoDB ObjectId của conversation |
+
+  ## Query Params
+
+  | Param | Kiểu | Bắt buộc | Mô tả |
+  |---|---|---|---|
+  | `page` | `number` | ❌ | Trang hiện tại — mặc định `1`, tối thiểu `1` |
+  | `limit` | `number` | ❌ | Số thành viên mỗi trang — mặc định `20`, tối thiểu `1` |
+
+  ---
+
+  ## Response
+
+  ### ✅ Success — 200 OK
+
+  ```json
+  {
+    "success": true,
+    "data": {
+      "users": [
+        {
+          "_id": "664u1...",
+          "email": "a@example.com",
+          "avatar": "/uploads/avatars/a.jpg",
+          "phone": "+84901234567"
+        }
+      ],
+      "totalItems": 3,
+      "totalPages": 1,
+      "currentPage": 1
+    }
+  }
+  ```
+
+  | Field | Kiểu | Mô tả |
+  |---|---|---|
+  | `success` | `boolean` | `true` nếu thành công |
+  | `data.users` | `array` | Danh sách thành viên trang hiện tại |
+  | `data.users[]._id` | `string` | MongoDB ObjectId của user |
+  | `data.users[].email` | `string` | Email của user |
+  | `data.users[].avatar` | `string` | URL ảnh đại diện |
+  | `data.users[].phone` | `string` | Số điện thoại |
+  | `data.totalItems` | `number` | Tổng số thành viên trong conversation |
+  | `data.totalPages` | `number` | Tổng số trang |
+  | `data.currentPage` | `number` | Trang hiện tại |
+
+  ### ❌ Error Responses
+
+  | HTTP Status | Error Code | Mô tả |
+  |---|---|---|
+  | `401` | `UNAUTHORIZED` | Access token không hợp lệ hoặc hết hạn |
+  | `404` | `CONVERSATION_NOT_FOUND` | Conversation không tồn tại hoặc user không phải thành viên |
+  | `500` | `COMMON_INTERNAL_ERROR` | Lỗi server không xác định |
+
+  ---
+
+  ## Notes
+
+  - `totalItems` là tổng số participants trong conversation (không phải tổng user trên DB).
+  - Chỉ trả về các field `_id`, `email`, `avatar`, `phone` — không trả về `fullName`. Lưu ý khi hiển thị UI cần dùng email thay thế nếu cần tên.
+  - Pagination được thực hiện thủ công trên array nhúng (`participants`) trước khi query DB.
+}

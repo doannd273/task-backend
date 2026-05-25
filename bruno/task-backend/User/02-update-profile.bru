@@ -34,3 +34,123 @@ body:json {
     "avatar": "{{avatarUrl}}"
   }
 }
+
+docs {
+  # Update Profile
+
+  ## Mô tả
+
+  API cập nhật thông tin cá nhân của người dùng đang đăng nhập. Chỉ cho phép thay đổi các trường được phép (`fullName`, `phone`, `avatar`). Không thể thay đổi `email` hoặc `password` qua API này.
+
+  **Domain:** User — quản lý thông tin hồ sơ người dùng.
+
+  **URL:** `PUT /api/user/updateProfile`
+
+  ---
+
+  ## cURL
+
+  ```bash
+  curl -X PUT "{{baseUrl}}/api/user/updateProfile" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer {{accessToken}}" \
+    -H "Accept-Language: vi" \
+    -H "X-Request-Id: req-001" \
+    -H "X-App-Version-Code: 10" \
+    -H "X-App-Version-Name: 1.0.0" \
+    -H "X-Platform: android" \
+    -H "X-OS-Version: 14" \
+    -H "X-Device-Model: Pixel 7" \
+    -H "X-Device-Id: device-xyz" \
+    -H "User-Agent: TaskApp/1.0.0" \
+    -d '{
+      "fullName": "Nguyen Van A",
+      "phone": "+84901234567",
+      "avatar": "/uploads/avatars/avatar.jpg"
+    }'
+  ```
+
+  ---
+
+  ## Headers
+
+  | Header | Bắt buộc | Mô tả |
+  |---|---|---|
+  | `Content-Type` | ✅ | Định dạng body — phải là `application/json` |
+  | `Authorization` | ✅ | Bearer token xác thực người dùng |
+  | `Accept-Language` | ✅ | Ngôn ngữ phản hồi lỗi (`vi`, `en`) |
+  | `X-Request-Id` | ✅ | ID định danh request, dùng để trace log |
+  | `X-App-Version-Code` | ✅ | Version code của app (số nguyên) |
+  | `X-App-Version-Name` | ✅ | Version name của app (chuỗi, vd: `1.0.0`) |
+  | `X-Platform` | ✅ | Nền tảng client (`android`, `ios`, `web`) |
+  | `X-OS-Version` | ✅ | Phiên bản OS của thiết bị |
+  | `X-Device-Model` | ✅ | Model thiết bị (vd: `Pixel 7`, `iPhone 15`) |
+  | `X-Device-Id` | ✅ | ID duy nhất của thiết bị |
+  | `User-Agent` | ✅ | Thông tin client app |
+
+  ---
+
+  ## Request Body
+
+  | Field | Kiểu | Bắt buộc | Mô tả |
+  |---|---|---|---|
+  | `fullName` | `string` | ❌ | Tên hiển thị đầy đủ của người dùng |
+  | `phone` | `string` | ❌ | Số điện thoại, định dạng `+?[9-15 chữ số]` (vd: `+84901234567`) |
+  | `avatar` | `string` | ❌ | Đường dẫn URL ảnh đại diện (thường lấy từ API upload avatar) |
+
+  > Gửi chỉ các field cần cập nhật, các field không gửi sẽ giữ nguyên giá trị cũ.
+
+  ---
+
+  ## Response
+
+  ### ✅ Success — 200 OK
+
+  ```json
+  {
+    "success": true,
+    "message": "Profile updated successfully.",
+    "data": {
+      "_id": "664abc123...",
+      "email": "user@example.com",
+      "fullName": "Nguyen Van A",
+      "phone": "+84901234567",
+      "avatar": "/uploads/avatars/avatar.jpg",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-06-01T12:00:00.000Z"
+    }
+  }
+  ```
+
+  | Field | Kiểu | Mô tả |
+  |---|---|---|
+  | `success` | `boolean` | `true` nếu request thành công |
+  | `message` | `string` | Thông báo kết quả — `"Profile updated successfully."` |
+  | `data._id` | `string` | MongoDB ObjectId của user |
+  | `data.email` | `string` | Email đăng nhập (không thể thay đổi qua API này) |
+  | `data.fullName` | `string` | Tên hiển thị sau khi cập nhật |
+  | `data.phone` | `string` | Số điện thoại sau khi cập nhật |
+  | `data.avatar` | `string` | URL ảnh đại diện sau khi cập nhật |
+  | `data.createdAt` | `string` | ISO 8601 — thời điểm tạo tài khoản |
+  | `data.updatedAt` | `string` | ISO 8601 — thời điểm cập nhật gần nhất |
+
+  > `password`, `refreshToken`, và các trường nhạy cảm bị ẩn khỏi response.
+
+  ### ❌ Error Responses
+
+  | HTTP Status | Error Code | Mô tả |
+  |---|---|---|
+  | `400` | `COMMON_VALIDATION_ERROR` | Dữ liệu không hợp lệ (vd: sai định dạng phone) |
+  | `401` | `UNAUTHORIZED` | Token không hợp lệ hoặc đã hết hạn |
+  | `404` | `USER_NOT_FOUND` | Không tìm thấy user trong DB |
+  | `500` | `USER_PROFILE_UPDATE_FAILED` | Lỗi server không xác định |
+
+  ---
+
+  ## Notes
+
+  - Tất cả các field trong body đều **optional** — có thể gửi một field hoặc nhiều field cùng lúc.
+  - Field `email` và `password` **không thể cập nhật** qua API này — sẽ bị bỏ qua hoàn toàn dù có gửi lên.
+  - Để đổi avatar, nên upload file trước qua `POST /api/user/uploadAvatar` rồi lấy URL trả về truyền vào field `avatar`.
+  - `phone` phải đúng regex `^(\+?\d{9,15})?$` — chuỗi rỗng `""` được chấp nhận (xóa phone).
+}

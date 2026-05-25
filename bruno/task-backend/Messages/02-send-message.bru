@@ -34,3 +34,113 @@ body:json {
     "type": "text"
   }
 }
+
+docs {
+  # Send Message
+
+  ## Mô tả
+
+  Gửi tin nhắn vào một conversation qua REST API (thay thế cho Socket.IO). Sau khi gửi, server tự động cập nhật `lastMessage` và `lastMessageAt` của conversation. User phải là thành viên của conversation.
+
+  **Domain:** Message — quản lý tin nhắn trong conversation.
+
+  **URL:** `POST /api/messages/sendMessage`
+
+  ---
+
+  ## cURL
+
+  ```bash
+  curl -X POST "{{baseUrl}}/api/messages/sendMessage" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer {{accessToken}}" \
+    -H "Accept-Language: vi" \
+    -H "X-Request-Id: req-002" \
+    -H "X-App-Version-Code: 10" \
+    -H "X-App-Version-Name: 1.0.0" \
+    -H "X-Platform: android" \
+    -H "X-OS-Version: 14" \
+    -H "X-Device-Model: Pixel 7" \
+    -H "X-Device-Id: device-xyz" \
+    -H "User-Agent: TaskApp/1.0.0" \
+    -d '{"conversationId":"664conv...","content":"Hello!","type":"text"}'
+  ```
+
+  ---
+
+  ## Headers
+
+  | Header | Bắt buộc | Mô tả |
+  |---|---|---|
+  | `Content-Type` | ✅ | Định dạng body — phải là `application/json` |
+  | `Authorization` | ✅ | Bearer token xác thực người dùng |
+  | `Accept-Language` | ✅ | Ngôn ngữ phản hồi lỗi (`vi`, `en`) |
+  | `X-Request-Id` | ✅ | ID định danh request, dùng để trace log |
+  | `X-App-Version-Code` | ✅ | Version code của app (số nguyên) |
+  | `X-App-Version-Name` | ✅ | Version name của app (vd: `1.0.0`) |
+  | `X-Platform` | ✅ | Nền tảng client (`android`, `ios`, `web`) |
+  | `X-OS-Version` | ✅ | Phiên bản OS của thiết bị |
+  | `X-Device-Model` | ✅ | Model thiết bị (vd: `Pixel 7`, `iPhone 15`) |
+  | `X-Device-Id` | ✅ | ID duy nhất của thiết bị |
+  | `User-Agent` | ✅ | Thông tin client app |
+
+  ---
+
+  ## Request Body
+
+  | Field | Kiểu | Bắt buộc | Mô tả |
+  |---|---|---|---|
+  | `conversationId` | `string` | ✅ | MongoDB ObjectId của conversation cần gửi tin |
+  | `content` | `string` | ✅ | Nội dung tin nhắn |
+  | `type` | `string` | ❌ | Loại tin nhắn: `text`, `image`, `system` — mặc định `text` |
+
+  ---
+
+  ## Response
+
+  ### ✅ Success — 201 Created
+
+  ```json
+  {
+    "success": true,
+    "data": {
+      "_id": "664msg...",
+      "conversationId": "664conv...",
+      "senderId": "664u1...",
+      "content": "Hello!",
+      "type": "text",
+      "createdAt": "2026-05-20T10:10:00.000Z",
+      "updatedAt": "2026-05-20T10:10:00.000Z"
+    }
+  }
+  ```
+
+  | Field | Kiểu | Mô tả |
+  |---|---|---|
+  | `success` | `boolean` | `true` nếu thành công |
+  | `data._id` | `string` | MongoDB ObjectId của tin nhắn vừa tạo |
+  | `data.conversationId` | `string` | ObjectId của conversation |
+  | `data.senderId` | `string` | ObjectId của người gửi (tự động từ token) |
+  | `data.content` | `string` | Nội dung tin nhắn |
+  | `data.type` | `string` | Loại tin nhắn: `text`, `image`, hoặc `system` |
+  | `data.createdAt` | `string` | ISO 8601 — thời điểm gửi |
+
+  ### ❌ Error Responses
+
+  | HTTP Status | Error Code | Mô tả |
+  |---|---|---|
+  | `400` | `MESSAGE_INVALID_CONVERSATION_ID` | `conversationId` không phải MongoDB ObjectId hợp lệ |
+  | `400` | `MESSAGE_CONTENT_REQUIRED` | Thiếu field `content` |
+  | `401` | `UNAUTHORIZED` | Access token không hợp lệ hoặc hết hạn |
+  | `404` | `MESSAGE_CONVERSATION_NOT_FOUND_OR_ACCESS_DENIED` | Conversation không tồn tại hoặc user không phải thành viên |
+  | `500` | `MESSAGE_SEND_FAILED` | Lỗi server không xác định |
+
+  ---
+
+  ## Notes
+
+  - API này là backup REST cho Socket.IO — trong production nên ưu tiên dùng Socket để nhận tin nhắn realtime.
+  - `senderId` được lấy tự động từ JWT — không truyền trong body.
+  - Gửi tin nhắn thành công sẽ tự động cập nhật `lastMessage` và `lastMessageAt` của conversation.
+  - Tin nhắn gửi qua REST sẽ không tự động phát Socket event — các user khác sẽ chỉ thấy khi gọi Get Messages hoặc nhận qua Socket.
+}

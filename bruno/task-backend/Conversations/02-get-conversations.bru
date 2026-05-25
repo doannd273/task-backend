@@ -30,3 +30,126 @@ params:query {
 auth:bearer {
   token: {{accessToken}}
 }
+
+docs {
+  # Get Conversations
+
+  ## Mô tả
+
+  Lấy danh sách tất cả cuộc trò chuyện mà người dùng đang đăng nhập là thành viên, có phân trang. Kết quả sắp xếp theo `lastMessageAt` mới nhất trước — phù hợp hiển thị inbox chat.
+
+  **Domain:** Conversation — quản lý các cuộc trò chuyện (chat).
+
+  **URL:** `GET /api/conversations/getConversations`
+
+  ---
+
+  ## cURL
+
+  ```bash
+  curl -X GET "{{baseUrl}}/api/conversations/getConversations?page=1&limit=20" \
+    -H "Authorization: Bearer {{accessToken}}" \
+    -H "Accept-Language: vi" \
+    -H "X-Request-Id: req-002" \
+    -H "X-App-Version-Code: 10" \
+    -H "X-App-Version-Name: 1.0.0" \
+    -H "X-Platform: android" \
+    -H "X-OS-Version: 14" \
+    -H "X-Device-Model: Pixel 7" \
+    -H "X-Device-Id: device-xyz" \
+    -H "User-Agent: TaskApp/1.0.0"
+  ```
+
+  ---
+
+  ## Headers
+
+  | Header | Bắt buộc | Mô tả |
+  |---|---|---|
+  | `Authorization` | ✅ | Bearer token xác thực người dùng |
+  | `Accept-Language` | ✅ | Ngôn ngữ phản hồi lỗi (`vi`, `en`) |
+  | `X-Request-Id` | ✅ | ID định danh request, dùng để trace log |
+  | `X-App-Version-Code` | ✅ | Version code của app (số nguyên) |
+  | `X-App-Version-Name` | ✅ | Version name của app (vd: `1.0.0`) |
+  | `X-Platform` | ✅ | Nền tảng client (`android`, `ios`, `web`) |
+  | `X-OS-Version` | ✅ | Phiên bản OS của thiết bị |
+  | `X-Device-Model` | ✅ | Model thiết bị (vd: `Pixel 7`, `iPhone 15`) |
+  | `X-Device-Id` | ✅ | ID duy nhất của thiết bị |
+  | `User-Agent` | ✅ | Thông tin client app |
+
+  ---
+
+  ## Query Params
+
+  | Param | Kiểu | Bắt buộc | Mô tả |
+  |---|---|---|---|
+  | `page` | `number` | ❌ | Trang hiện tại — mặc định `1`, tối thiểu `1` |
+  | `limit` | `number` | ❌ | Số conversation mỗi trang — mặc định `20`, tối thiểu `1` |
+
+  ---
+
+  ## Response
+
+  ### ✅ Success — 200 OK
+
+  ```json
+  {
+    "success": true,
+    "data": {
+      "conversations": [
+        {
+          "_id": "664conv...",
+          "type": "private",
+          "name": "",
+          "creator": "664creator...",
+          "participants": [
+            { "_id": "664u1...", "email": "a@example.com", "avatar": "", "phone": "" },
+            { "_id": "664u2...", "email": "b@example.com", "avatar": "", "phone": "" }
+          ],
+          "lastMessage": {
+            "content": "Hello!",
+            "senderId": { "_id": "664u1...", "email": "a@example.com", "avatar": "" },
+            "createdAt": "2026-05-20T10:00:00.000Z",
+            "type": "text"
+          },
+          "lastMessageAt": "2026-05-20T10:00:00.000Z",
+          "createdAt": "2026-05-01T00:00:00.000Z",
+          "updatedAt": "2026-05-20T10:00:00.000Z"
+        }
+      ],
+      "totalItems": 5,
+      "totalPages": 1,
+      "currentPage": 1
+    }
+  }
+  ```
+
+  | Field | Kiểu | Mô tả |
+  |---|---|---|
+  | `success` | `boolean` | `true` nếu thành công |
+  | `data.conversations` | `array` | Danh sách conversation của trang hiện tại |
+  | `data.conversations[]._id` | `string` | MongoDB ObjectId của conversation |
+  | `data.conversations[].type` | `string` | Loại: `private` hoặc `group` |
+  | `data.conversations[].name` | `string` | Tên nhóm (rỗng với private) |
+  | `data.conversations[].participants` | `array` | Danh sách participants đã populate (có `_id`, `email`, `avatar`, `phone`) |
+  | `data.conversations[].lastMessage` | `object\|null` | Tin nhắn cuối — có `content`, `senderId` (đã populate), `createdAt`, `type` |
+  | `data.conversations[].lastMessageAt` | `string` | ISO 8601 — thời điểm tin nhắn cuối (dùng để sort) |
+  | `data.totalItems` | `number` | Tổng số conversation |
+  | `data.totalPages` | `number` | Tổng số trang |
+  | `data.currentPage` | `number` | Trang hiện tại |
+
+  ### ❌ Error Responses
+
+  | HTTP Status | Error Code | Mô tả |
+  |---|---|---|
+  | `401` | `UNAUTHORIZED` | Access token không hợp lệ hoặc hết hạn |
+  | `500` | `CONVERSATION_RETRIEVE_FAILED` | Lỗi server không xác định |
+
+  ---
+
+  ## Notes
+
+  - `participants` và `lastMessage.senderId` được **populate** — trả về object đầy đủ thay vì chỉ ObjectId.
+  - Danh sách sắp xếp theo `lastMessageAt` giảm dần — conversation có tin nhắn mới nhất lên đầu.
+  - Chỉ trả về conversation mà user hiện tại là participant.
+}

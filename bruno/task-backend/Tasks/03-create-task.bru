@@ -35,3 +35,115 @@ body:json {
     "dueDate": "2026-06-01T00:00:00.000Z"
   }
 }
+
+docs {
+  # Create Task
+
+  ## Mô tả
+
+  Tạo task mới cho người dùng đang đăng nhập. Task được gắn với `userId` tự động từ token — user chỉ có thể tạo task cho chính mình.
+
+  **Domain:** Task — quản lý công việc cá nhân của user.
+
+  **URL:** `POST /api/tasks/createTask`
+
+  ---
+
+  ## cURL
+
+  ```bash
+  curl -X POST "{{baseUrl}}/api/tasks/createTask" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer {{accessToken}}" \
+    -H "Accept-Language: vi" \
+    -H "X-Request-Id: req-003" \
+    -H "X-App-Version-Code: 10" \
+    -H "X-App-Version-Name: 1.0.0" \
+    -H "X-Platform: android" \
+    -H "X-OS-Version: 14" \
+    -H "X-Device-Model: Pixel 7" \
+    -H "X-Device-Id: device-xyz" \
+    -H "User-Agent: TaskApp/1.0.0" \
+    -d '{"title":"Fix login bug","description":"Crash on Android","status":"todo","dueDate":"2026-06-01T00:00:00.000Z"}'
+  ```
+
+  ---
+
+  ## Headers
+
+  | Header | Bắt buộc | Mô tả |
+  |---|---|---|
+  | `Content-Type` | ✅ | Định dạng body — phải là `application/json` |
+  | `Authorization` | ✅ | Bearer token xác thực người dùng |
+  | `Accept-Language` | ✅ | Ngôn ngữ phản hồi lỗi (`vi`, `en`) |
+  | `X-Request-Id` | ✅ | ID định danh request, dùng để trace log |
+  | `X-App-Version-Code` | ✅ | Version code của app (số nguyên) |
+  | `X-App-Version-Name` | ✅ | Version name của app (vd: `1.0.0`) |
+  | `X-Platform` | ✅ | Nền tảng client (`android`, `ios`, `web`) |
+  | `X-OS-Version` | ✅ | Phiên bản OS của thiết bị |
+  | `X-Device-Model` | ✅ | Model thiết bị (vd: `Pixel 7`, `iPhone 15`) |
+  | `X-Device-Id` | ✅ | ID duy nhất của thiết bị |
+  | `User-Agent` | ✅ | Thông tin client app |
+
+  ---
+
+  ## Request Body
+
+  | Field | Kiểu | Bắt buộc | Mô tả |
+  |---|---|---|---|
+  | `title` | `string` | ✅ | Tiêu đề task — tối đa 200 ký tự |
+  | `description` | `string` | ❌ | Mô tả chi tiết — tối đa 2000 ký tự, mặc định `""` |
+  | `status` | `string` | ❌ | Trạng thái ban đầu: `todo`, `in_progress`, `pending`, `done` — mặc định `todo` |
+  | `dueDate` | `string` | ❌ | Ngày đến hạn ISO 8601 (vd: `2026-06-01T00:00:00.000Z`), hoặc `null` |
+
+  ---
+
+  ## Response
+
+  ### ✅ Success — 201 Created
+
+  ```json
+  {
+    "success": true,
+    "data": {
+      "_id": "664abc123...",
+      "userId": "664user...",
+      "title": "Fix login bug",
+      "description": "Crash on Android",
+      "status": "todo",
+      "dueDate": "2026-06-01T00:00:00.000Z",
+      "createdAt": "2026-05-20T10:00:00.000Z",
+      "updatedAt": "2026-05-20T10:00:00.000Z"
+    }
+  }
+  ```
+
+  | Field | Kiểu | Mô tả |
+  |---|---|---|
+  | `success` | `boolean` | `true` nếu thành công |
+  | `data._id` | `string` | MongoDB ObjectId của task vừa tạo |
+  | `data.userId` | `string` | ObjectId của user sở hữu (tự động từ token) |
+  | `data.title` | `string` | Tiêu đề task |
+  | `data.description` | `string` | Mô tả task |
+  | `data.status` | `string` | Trạng thái task |
+  | `data.dueDate` | `string\|null` | Ngày đến hạn ISO 8601, hoặc `null` |
+  | `data.createdAt` | `string` | ISO 8601 — thời điểm tạo |
+  | `data.updatedAt` | `string` | ISO 8601 — thời điểm cập nhật |
+
+  ### ❌ Error Responses
+
+  | HTTP Status | Error Code | Mô tả |
+  |---|---|---|
+  | `400` | `TASK_TITLE_REQUIRED` | Thiếu field `title` |
+  | `400` | `TASK_INVALID_STATUS` | Giá trị `status` không hợp lệ |
+  | `401` | `UNAUTHORIZED` | Access token không hợp lệ hoặc hết hạn |
+  | `500` | `TASK_CREATE_FAILED` | Lỗi server không xác định |
+
+  ---
+
+  ## Notes
+
+  - `userId` được lấy tự động từ JWT — không cần và không thể truyền trong body.
+  - `status` mặc định là `todo` nếu không truyền.
+  - `dueDate` phải là ISO 8601 hoặc bỏ qua hoàn toàn — truyền chuỗi rỗng hoặc sai format sẽ gây lỗi Mongoose cast.
+}

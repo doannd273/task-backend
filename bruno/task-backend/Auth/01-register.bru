@@ -44,3 +44,116 @@ script:post-response {
     bru.setEnvVar("refreshToken", refreshToken, { persist: true });
   }
 }
+
+docs {
+  # Register
+
+  ## Mô tả
+
+  Đăng ký tài khoản mới. Sau khi thành công, server trả về `accessToken` và `refreshToken` để client có thể dùng ngay mà không cần đăng nhập lại.
+
+  **Domain:** Auth — xác thực và quản lý phiên đăng nhập.
+
+  **URL:** `POST /api/auth/register`
+
+  ---
+
+  ## cURL
+
+  ```bash
+  curl -X POST "{{baseUrl}}/api/auth/register" \
+    -H "Content-Type: application/json" \
+    -H "Accept-Language: vi" \
+    -H "X-Request-Id: req-001" \
+    -H "X-App-Version-Code: 10" \
+    -H "X-App-Version-Name: 1.0.0" \
+    -H "X-Platform: android" \
+    -H "X-OS-Version: 14" \
+    -H "X-Device-Model: Pixel 7" \
+    -H "X-Device-Id: device-xyz" \
+    -H "User-Agent: TaskApp/1.0.0" \
+    -d '{"email":"user@example.com","password":"password123","fullName":"Nguyen Van A"}'
+  ```
+
+  ---
+
+  ## Headers
+
+  | Header | Bắt buộc | Mô tả |
+  |---|---|---|
+  | `Content-Type` | ✅ | Định dạng body — phải là `application/json` |
+  | `Accept-Language` | ✅ | Ngôn ngữ phản hồi lỗi (`vi`, `en`) |
+  | `X-Request-Id` | ✅ | ID định danh request, dùng để trace log |
+  | `X-App-Version-Code` | ✅ | Version code của app (số nguyên) |
+  | `X-App-Version-Name` | ✅ | Version name của app (vd: `1.0.0`) |
+  | `X-Platform` | ✅ | Nền tảng client (`android`, `ios`, `web`) |
+  | `X-OS-Version` | ✅ | Phiên bản OS của thiết bị |
+  | `X-Device-Model` | ✅ | Model thiết bị (vd: `Pixel 7`, `iPhone 15`) |
+  | `X-Device-Id` | ✅ | ID duy nhất của thiết bị |
+  | `User-Agent` | ✅ | Thông tin client app |
+
+  ---
+
+  ## Request Body
+
+  | Field | Kiểu | Bắt buộc | Mô tả |
+  |---|---|---|---|
+  | `email` | `string` | ✅ | Email đăng ký — phải đúng định dạng, tự động lowercase |
+  | `password` | `string` | ✅ | Mật khẩu — tối thiểu 6 ký tự |
+  | `fullName` | `string` | ✅ | Tên hiển thị đầy đủ |
+
+  ---
+
+  ## Response
+
+  ### ✅ Success — 201 Created
+
+  ```json
+  {
+    "success": true,
+    "code": "AUTH_REGISTER_SUCCESS",
+    "message": "Đăng ký thành công.",
+    "data": {
+      "userId": "664abc123...",
+      "accessToken": "eyJhbGci...",
+      "refreshToken": "eyJhbGci...",
+      "user": {
+        "_id": "664abc123...",
+        "email": "user@example.com",
+        "fullName": "Nguyen Van A",
+        "avatar": ""
+      }
+    }
+  }
+  ```
+
+  | Field | Kiểu | Mô tả |
+  |---|---|---|
+  | `success` | `boolean` | `true` nếu thành công |
+  | `code` | `string` | Mã kết quả — `AUTH_REGISTER_SUCCESS` |
+  | `message` | `string` | Thông báo theo ngôn ngữ `Accept-Language` |
+  | `data.userId` | `string` | MongoDB ObjectId của user vừa tạo |
+  | `data.accessToken` | `string` | JWT ngắn hạn (mặc định 15 phút) |
+  | `data.refreshToken` | `string` | JWT dài hạn (mặc định 7 ngày) |
+  | `data.user._id` | `string` | MongoDB ObjectId |
+  | `data.user.email` | `string` | Email đã lowercase |
+  | `data.user.fullName` | `string` | Tên hiển thị |
+  | `data.user.avatar` | `string` | URL ảnh đại diện (rỗng khi mới tạo) |
+
+  ### ❌ Error Responses
+
+  | HTTP Status | Error Code | Mô tả |
+  |---|---|---|
+  | `400` | `AUTH_REGISTER_REQUIRED_FIELDS` | Thiếu `email`, `password`, hoặc `fullName` |
+  | `400` | `COMMON_VALIDATION_ERROR` | Dữ liệu sai định dạng (email invalid, password < 6 ký tự) |
+  | `409` | `AUTH_EMAIL_ALREADY_REGISTERED` | Email đã được đăng ký trước đó |
+  | `500` | `AUTH_REGISTRATION_FAILED` | Lỗi server không xác định |
+
+  ---
+
+  ## Notes
+
+  - Script `post-response` tự động lưu `accessToken` và `refreshToken` vào environment variable của Bruno.
+  - `password` được hash bằng bcrypt trước khi lưu vào DB, không bao giờ xuất hiện trong response.
+  - Email tự động trim whitespace và chuyển lowercase.
+}

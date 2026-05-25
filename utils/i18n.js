@@ -50,6 +50,8 @@ const messages = {
     USER_AVATAR_FILE_REQUIRED: 'Vui lòng chọn file ảnh.',
     USER_AVATAR_INVALID_FILE_TYPE: 'File ảnh không hợp lệ. Chỉ chấp nhận JPG, PNG và WEBP.',
     USER_AVATAR_TOO_LARGE: 'File ảnh không được vượt quá 5MB.',
+    USER_AVATAR_UNEXPECTED_FIELD: 'Field upload không hợp lệ. Hãy gửi file với field name là avatar.',
+    USER_AVATAR_MULTIPART_INVALID: 'Request upload không hợp lệ. Hãy gửi multipart/form-data kèm file field avatar.',
     USER_AVATAR_UPLOAD_FAILED: 'Tải ảnh đại diện thất bại.',
     USER_SEARCH_FAILED: 'Tìm kiếm người dùng thất bại.',
 
@@ -135,6 +137,8 @@ const messages = {
     USER_AVATAR_FILE_REQUIRED: 'No image file provided.',
     USER_AVATAR_INVALID_FILE_TYPE: 'Invalid image file. Only JPG, PNG and WEBP are allowed.',
     USER_AVATAR_TOO_LARGE: 'Image file must not exceed 5MB.',
+    USER_AVATAR_UNEXPECTED_FIELD: 'Invalid upload field. Send the file using the avatar field name.',
+    USER_AVATAR_MULTIPART_INVALID: 'Invalid upload request. Send multipart/form-data with an avatar file field.',
     USER_AVATAR_UPLOAD_FAILED: 'Failed to upload avatar.',
     USER_SEARCH_FAILED: 'Failed to search users.',
 

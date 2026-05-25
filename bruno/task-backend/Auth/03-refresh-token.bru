@@ -42,3 +42,98 @@ script:post-response {
     bru.setEnvVar("refreshToken", refreshToken, { persist: true });
   }
 }
+
+docs {
+  # Refresh Token
+
+  ## Mô tả
+
+  Làm mới `accessToken` khi đã hết hạn bằng `refreshToken`. Server áp dụng **refresh token rotation** — mỗi lần gọi sẽ tạo cả `accessToken` mới lẫn `refreshToken` mới, token cũ bị vô hiệu hóa ngay lập tức.
+
+  **Domain:** Auth — xác thực và quản lý phiên đăng nhập.
+
+  **URL:** `POST /api/auth/refresh-token`
+
+  ---
+
+  ## cURL
+
+  ```bash
+  curl -X POST "{{baseUrl}}/api/auth/refresh-token" \
+    -H "Content-Type: application/json" \
+    -H "Accept-Language: vi" \
+    -H "X-Request-Id: req-003" \
+    -H "X-App-Version-Code: 10" \
+    -H "X-App-Version-Name: 1.0.0" \
+    -H "X-Platform: android" \
+    -H "X-OS-Version: 14" \
+    -H "X-Device-Model: Pixel 7" \
+    -H "X-Device-Id: device-xyz" \
+    -H "User-Agent: TaskApp/1.0.0" \
+    -d '{"refreshToken":"eyJhbGci..."}'
+  ```
+
+  ---
+
+  ## Headers
+
+  | Header | Bắt buộc | Mô tả |
+  |---|---|---|
+  | `Content-Type` | ✅ | Định dạng body — phải là `application/json` |
+  | `Accept-Language` | ✅ | Ngôn ngữ phản hồi lỗi (`vi`, `en`) |
+  | `X-Request-Id` | ✅ | ID định danh request, dùng để trace log |
+  | `X-App-Version-Code` | ✅ | Version code của app (số nguyên) |
+  | `X-App-Version-Name` | ✅ | Version name của app (vd: `1.0.0`) |
+  | `X-Platform` | ✅ | Nền tảng client (`android`, `ios`, `web`) |
+  | `X-OS-Version` | ✅ | Phiên bản OS của thiết bị |
+  | `X-Device-Model` | ✅ | Model thiết bị (vd: `Pixel 7`, `iPhone 15`) |
+  | `X-Device-Id` | ✅ | ID duy nhất của thiết bị |
+  | `User-Agent` | ✅ | Thông tin client app |
+
+  ---
+
+  ## Request Body
+
+  | Field | Kiểu | Bắt buộc | Mô tả |
+  |---|---|---|---|
+  | `refreshToken` | `string` | ✅ | Refresh token JWT nhận được khi đăng nhập hoặc đăng ký |
+
+  ---
+
+  ## Response
+
+  ### ✅ Success — 200 OK
+
+  ```json
+  {
+    "success": true,
+    "data": {
+      "accessToken": "eyJhbGci...",
+      "refreshToken": "eyJhbGci..."
+    }
+  }
+  ```
+
+  | Field | Kiểu | Mô tả |
+  |---|---|---|
+  | `success` | `boolean` | `true` nếu thành công |
+  | `data.accessToken` | `string` | Access token mới (JWT ngắn hạn, mặc định 15 phút) |
+  | `data.refreshToken` | `string` | Refresh token mới (JWT dài hạn, mặc định 7 ngày) — **bắt buộc lưu lại để dùng lần sau** |
+
+  ### ❌ Error Responses
+
+  | HTTP Status | Error Code | Mô tả |
+  |---|---|---|
+  | `400` | `AUTH_REFRESH_TOKEN_REQUIRED` | Body thiếu field `refreshToken` |
+  | `401` | `AUTH_INVALID_OR_EXPIRED_REFRESH_TOKEN` | Token không hợp lệ hoặc đã hết hạn (JWT verify fail) |
+  | `401` | `AUTH_INVALID_REFRESH_TOKEN` | Token không khớp với DB (đã bị rotate hoặc đã logout) |
+  | `500` | `AUTH_REFRESH_FAILED` | Lỗi server không xác định |
+
+  ---
+
+  ## Notes
+
+  - Áp dụng **refresh token rotation**: sau mỗi lần gọi, client **bắt buộc** lưu lại refresh token mới từ response — token cũ không còn dùng được.
+  - Nếu dùng refresh token đã bị rotate, server trả `AUTH_INVALID_REFRESH_TOKEN` — user phải đăng nhập lại.
+  - Script `post-response` tự động cập nhật cả hai token trong environment variable của Bruno.
+}

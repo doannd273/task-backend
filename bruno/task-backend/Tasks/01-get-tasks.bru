@@ -32,3 +32,122 @@ params:query {
 auth:bearer {
   token: {{accessToken}}
 }
+
+docs {
+  # Get Tasks
+
+  ## Mô tả
+
+  Lấy danh sách task của người dùng đang đăng nhập, hỗ trợ filter theo `status`, tìm kiếm theo `keyword` (title hoặc description), và phân trang. Kết quả sắp xếp theo `createdAt` mới nhất trước.
+
+  **Domain:** Task — quản lý công việc cá nhân của user.
+
+  **URL:** `GET /api/tasks/getTasks`
+
+  ---
+
+  ## cURL
+
+  ```bash
+  curl -X GET "{{baseUrl}}/api/tasks/getTasks?page=1&limit=20&status=todo&keyword=meeting" \
+    -H "Authorization: Bearer {{accessToken}}" \
+    -H "Accept-Language: vi" \
+    -H "X-Request-Id: req-001" \
+    -H "X-App-Version-Code: 10" \
+    -H "X-App-Version-Name: 1.0.0" \
+    -H "X-Platform: android" \
+    -H "X-OS-Version: 14" \
+    -H "X-Device-Model: Pixel 7" \
+    -H "X-Device-Id: device-xyz" \
+    -H "User-Agent: TaskApp/1.0.0"
+  ```
+
+  ---
+
+  ## Headers
+
+  | Header | Bắt buộc | Mô tả |
+  |---|---|---|
+  | `Authorization` | ✅ | Bearer token xác thực người dùng |
+  | `Accept-Language` | ✅ | Ngôn ngữ phản hồi lỗi (`vi`, `en`) |
+  | `X-Request-Id` | ✅ | ID định danh request, dùng để trace log |
+  | `X-App-Version-Code` | ✅ | Version code của app (số nguyên) |
+  | `X-App-Version-Name` | ✅ | Version name của app (vd: `1.0.0`) |
+  | `X-Platform` | ✅ | Nền tảng client (`android`, `ios`, `web`) |
+  | `X-OS-Version` | ✅ | Phiên bản OS của thiết bị |
+  | `X-Device-Model` | ✅ | Model thiết bị (vd: `Pixel 7`, `iPhone 15`) |
+  | `X-Device-Id` | ✅ | ID duy nhất của thiết bị |
+  | `User-Agent` | ✅ | Thông tin client app |
+
+  ---
+
+  ## Query Params
+
+  | Param | Kiểu | Bắt buộc | Mô tả |
+  |---|---|---|---|
+  | `page` | `number` | ❌ | Trang hiện tại — mặc định `1`, tối thiểu `1` |
+  | `limit` | `number` | ❌ | Số lượng task mỗi trang — mặc định `20`, tối thiểu `1` |
+  | `status` | `string` | ❌ | Lọc theo trạng thái: `todo`, `in_progress`, `pending`, `done` |
+  | `keyword` | `string` | ❌ | Tìm kiếm theo `title` hoặc `description` (case-insensitive, regex) |
+
+  ---
+
+  ## Response
+
+  ### ✅ Success — 200 OK
+
+  ```json
+  {
+    "success": true,
+    "data": {
+      "tasks": [
+        {
+          "_id": "664abc123...",
+          "userId": "664user...",
+          "title": "Fix login bug",
+          "description": "Investigate crash on Android",
+          "status": "in_progress",
+          "dueDate": "2026-06-01T00:00:00.000Z",
+          "createdAt": "2026-05-01T10:00:00.000Z",
+          "updatedAt": "2026-05-10T08:00:00.000Z"
+        }
+      ],
+      "totalItems": 42,
+      "totalPages": 3,
+      "currentPage": 1
+    }
+  }
+  ```
+
+  | Field | Kiểu | Mô tả |
+  |---|---|---|
+  | `success` | `boolean` | `true` nếu thành công |
+  | `data.tasks` | `array` | Danh sách task của trang hiện tại |
+  | `data.tasks[]._id` | `string` | MongoDB ObjectId của task |
+  | `data.tasks[].userId` | `string` | ObjectId của user sở hữu task |
+  | `data.tasks[].title` | `string` | Tiêu đề task (tối đa 200 ký tự) |
+  | `data.tasks[].description` | `string` | Mô tả chi tiết (tối đa 2000 ký tự) |
+  | `data.tasks[].status` | `string` | Trạng thái: `todo`, `in_progress`, `pending`, `done` |
+  | `data.tasks[].dueDate` | `string\|null` | Ngày đến hạn ISO 8601, hoặc `null` |
+  | `data.tasks[].createdAt` | `string` | ISO 8601 — thời điểm tạo |
+  | `data.tasks[].updatedAt` | `string` | ISO 8601 — thời điểm cập nhật gần nhất |
+  | `data.totalItems` | `number` | Tổng số task khớp với filter |
+  | `data.totalPages` | `number` | Tổng số trang |
+  | `data.currentPage` | `number` | Trang hiện tại |
+
+  ### ❌ Error Responses
+
+  | HTTP Status | Error Code | Mô tả |
+  |---|---|---|
+  | `400` | `TASK_INVALID_STATUS` | Giá trị `status` không hợp lệ |
+  | `401` | `UNAUTHORIZED` | Access token không hợp lệ hoặc hết hạn |
+  | `500` | `TASK_RETRIEVE_FAILED` | Lỗi server không xác định |
+
+  ---
+
+  ## Notes
+
+  - Chỉ trả về task của user đang đăng nhập — không thể xem task của user khác.
+  - `status` và `keyword` có thể dùng đồng thời để lọc kết hợp.
+  - `keyword` tìm kiếm theo regex case-insensitive trên cả `title` và `description`.
+}

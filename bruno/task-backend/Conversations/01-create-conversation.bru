@@ -36,3 +36,117 @@ body:json {
     ]
   }
 }
+
+docs {
+  # Create Conversation
+
+  ## Mô tả
+
+  Tạo cuộc trò chuyện mới — có thể là `private` (1-1) hoặc `group` (nhóm). Người tạo tự động được thêm vào danh sách participants. Nếu là chat `private` và đã tồn tại conversation giữa 2 người, server trả về conversation cũ thay vì tạo mới.
+
+  **Domain:** Conversation — quản lý các cuộc trò chuyện (chat).
+
+  **URL:** `POST /api/conversations/createConversation`
+
+  ---
+
+  ## cURL
+
+  ```bash
+  curl -X POST "{{baseUrl}}/api/conversations/createConversation" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer {{accessToken}}" \
+    -H "Accept-Language: vi" \
+    -H "X-Request-Id: req-001" \
+    -H "X-App-Version-Code: 10" \
+    -H "X-App-Version-Name: 1.0.0" \
+    -H "X-Platform: android" \
+    -H "X-OS-Version: 14" \
+    -H "X-Device-Model: Pixel 7" \
+    -H "X-Device-Id: device-xyz" \
+    -H "User-Agent: TaskApp/1.0.0" \
+    -d '{"type":"group","name":"Team Chat","participantIds":["664user2..."]}'
+  ```
+
+  ---
+
+  ## Headers
+
+  | Header | Bắt buộc | Mô tả |
+  |---|---|---|
+  | `Content-Type` | ✅ | Định dạng body — phải là `application/json` |
+  | `Authorization` | ✅ | Bearer token xác thực người dùng |
+  | `Accept-Language` | ✅ | Ngôn ngữ phản hồi lỗi (`vi`, `en`) |
+  | `X-Request-Id` | ✅ | ID định danh request, dùng để trace log |
+  | `X-App-Version-Code` | ✅ | Version code của app (số nguyên) |
+  | `X-App-Version-Name` | ✅ | Version name của app (vd: `1.0.0`) |
+  | `X-Platform` | ✅ | Nền tảng client (`android`, `ios`, `web`) |
+  | `X-OS-Version` | ✅ | Phiên bản OS của thiết bị |
+  | `X-Device-Model` | ✅ | Model thiết bị (vd: `Pixel 7`, `iPhone 15`) |
+  | `X-Device-Id` | ✅ | ID duy nhất của thiết bị |
+  | `User-Agent` | ✅ | Thông tin client app |
+
+  ---
+
+  ## Request Body
+
+  | Field | Kiểu | Bắt buộc | Mô tả |
+  |---|---|---|---|
+  | `type` | `string` | ✅ | Loại conversation: `private` (1-1) hoặc `group` (nhóm) |
+  | `name` | `string` | Có nếu `group` | Tên nhóm — bắt buộc khi `type = group`, bỏ qua khi `type = private` |
+  | `participantIds` | `array<string>` | ✅ | Mảng ObjectId của các user tham gia. Người tạo được tự động thêm vào. |
+
+  ---
+
+  ## Response
+
+  ### ✅ Success — 201 Created (hoặc 200 nếu đã tồn tại với private)
+
+  ```json
+  {
+    "success": true,
+    "data": {
+      "_id": "664conv...",
+      "type": "group",
+      "name": "Team Chat",
+      "creator": "664creator...",
+      "participants": ["664creator...", "664user2..."],
+      "lastMessage": null,
+      "lastMessageAt": "2026-05-20T10:00:00.000Z",
+      "createdAt": "2026-05-20T10:00:00.000Z",
+      "updatedAt": "2026-05-20T10:00:00.000Z"
+    }
+  }
+  ```
+
+  | Field | Kiểu | Mô tả |
+  |---|---|---|
+  | `success` | `boolean` | `true` nếu thành công |
+  | `data._id` | `string` | MongoDB ObjectId của conversation |
+  | `data.type` | `string` | Loại conversation: `private` hoặc `group` |
+  | `data.name` | `string` | Tên nhóm (rỗng với private) |
+  | `data.creator` | `string` | ObjectId của người tạo |
+  | `data.participants` | `array<string>` | Danh sách ObjectId tất cả participants |
+  | `data.lastMessage` | `object\|null` | Tin nhắn cuối cùng, `null` nếu chưa có |
+  | `data.lastMessageAt` | `string` | ISO 8601 — thời điểm tin nhắn cuối |
+
+  ### ❌ Error Responses
+
+  | HTTP Status | Error Code | Mô tả |
+  |---|---|---|
+  | `400` | `CONVERSATION_INVALID_TYPE` | `type` không phải `private` hoặc `group` |
+  | `400` | `CONVERSATION_PARTICIPANT_IDS_REQUIRED_ARRAY` | `participantIds` thiếu hoặc không phải array |
+  | `400` | `CONVERSATION_PRIVATE_REQUIRES_TWO_PARTICIPANTS` | Private chat phải có đúng 2 người (bao gồm người tạo) |
+  | `400` | `CONVERSATION_GROUP_NAME_REQUIRED` | `name` bắt buộc khi `type = group` |
+  | `400` | `CONVERSATION_INVALID_PARTICIPANTS` | Một hoặc nhiều `userId` trong `participantIds` không tồn tại |
+  | `401` | `UNAUTHORIZED` | Access token không hợp lệ hoặc hết hạn |
+  | `500` | `CONVERSATION_CREATE_FAILED` | Lỗi server không xác định |
+
+  ---
+
+  ## Notes
+
+  - Với `private` chat: nếu conversation giữa 2 user đã tồn tại, API trả về `200` với conversation cũ thay vì tạo mới — **idempotent**.
+  - Người tạo luôn được thêm vào `participantIds` tự động, dù không truyền trong array.
+  - `participantIds` cho `private` chat chỉ cần truyền 1 userId của người kia — người tạo tự động được thêm để đủ 2.
+}

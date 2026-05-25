@@ -5,7 +5,7 @@ Open this folder in Bruno as a collection.
 ## Setup
 
 1. Select the `Local` environment.
-2. Keep `baseUrl` as `http://localhost:3000`, or change it to your LAN/server URL.
+2. Keep `baseUrl` as `http://localhost:3000` for desktop-only testing, or change it to your LAN/server URL when you want responses to match mobile.
 3. Set `language` to `vi` or `en`. Bruno sends it as `Accept-Language`.
 4. Run `Auth / Login` or `Auth / Register`.
 5. Copy `data.accessToken` and `data.refreshToken` from the response into the environment variables.
@@ -13,6 +13,8 @@ Open this folder in Bruno as a collection.
 7. For password reset, run `Auth / Forgot Password`, copy the OTP from email into `resetOtp`, then run `Auth / Reset Password`.
 
 All protected endpoints use `Authorization: Bearer {{accessToken}}`.
+
+For avatar URLs, the backend returns an absolute `data.avatar` based on `PUBLIC_BASE_URL`. In local development, if `PUBLIC_BASE_URL` is not set, the backend auto-detects the preferred LAN IP and uses a value like `http://192.168.1.10:3000`. Use that LAN URL for mobile testing; `localhost` only works from the same machine.
 
 Every request also sends mobile debug headers from environment variables:
 

@@ -25,3 +25,97 @@ headers {
 auth:bearer {
   token: {{accessToken}}
 }
+
+docs {
+  # Get Profile
+
+  ## Mô tả
+
+  Lấy thông tin hồ sơ đầy đủ của người dùng đang đăng nhập. Trả về toàn bộ thông tin user (trừ các trường nhạy cảm như `password`, `refreshToken`).
+
+  **Domain:** User — quản lý thông tin hồ sơ người dùng.
+
+  **URL:** `GET /api/user/getProfile`
+
+  ---
+
+  ## cURL
+
+  ```bash
+  curl -X GET "{{baseUrl}}/api/user/getProfile" \
+    -H "Authorization: Bearer {{accessToken}}" \
+    -H "Accept-Language: vi" \
+    -H "X-Request-Id: req-001" \
+    -H "X-App-Version-Code: 10" \
+    -H "X-App-Version-Name: 1.0.0" \
+    -H "X-Platform: android" \
+    -H "X-OS-Version: 14" \
+    -H "X-Device-Model: Pixel 7" \
+    -H "X-Device-Id: device-xyz" \
+    -H "User-Agent: TaskApp/1.0.0"
+  ```
+
+  ---
+
+  ## Headers
+
+  | Header | Bắt buộc | Mô tả |
+  |---|---|---|
+  | `Authorization` | ✅ | Bearer token xác thực người dùng |
+  | `Accept-Language` | ✅ | Ngôn ngữ phản hồi lỗi (`vi`, `en`) |
+  | `X-Request-Id` | ✅ | ID định danh request, dùng để trace log |
+  | `X-App-Version-Code` | ✅ | Version code của app (số nguyên) |
+  | `X-App-Version-Name` | ✅ | Version name của app (vd: `1.0.0`) |
+  | `X-Platform` | ✅ | Nền tảng client (`android`, `ios`, `web`) |
+  | `X-OS-Version` | ✅ | Phiên bản OS của thiết bị |
+  | `X-Device-Model` | ✅ | Model thiết bị (vd: `Pixel 7`, `iPhone 15`) |
+  | `X-Device-Id` | ✅ | ID duy nhất của thiết bị |
+  | `User-Agent` | ✅ | Thông tin client app |
+
+  ---
+
+  ## Response
+
+  ### ✅ Success — 200 OK
+
+  ```json
+  {
+    "success": true,
+    "data": {
+      "_id": "664abc123...",
+      "email": "user@example.com",
+      "fullName": "Nguyen Van A",
+      "avatar": "/uploads/avatars/avatar.jpg",
+      "phone": "+84901234567",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2026-05-20T10:00:00.000Z"
+    }
+  }
+  ```
+
+  | Field | Kiểu | Mô tả |
+  |---|---|---|
+  | `success` | `boolean` | `true` nếu thành công |
+  | `data._id` | `string` | MongoDB ObjectId của user |
+  | `data.email` | `string` | Email đăng nhập (đã lowercase) |
+  | `data.fullName` | `string` | Tên hiển thị đầy đủ |
+  | `data.avatar` | `string` | URL ảnh đại diện (rỗng nếu chưa upload) |
+  | `data.phone` | `string` | Số điện thoại (rỗng nếu chưa cập nhật) |
+  | `data.createdAt` | `string` | ISO 8601 — thời điểm tạo tài khoản |
+  | `data.updatedAt` | `string` | ISO 8601 — thời điểm cập nhật gần nhất |
+
+  ### ❌ Error Responses
+
+  | HTTP Status | Error Code | Mô tả |
+  |---|---|---|
+  | `401` | `UNAUTHORIZED` | Access token không hợp lệ hoặc hết hạn |
+  | `404` | `USER_NOT_FOUND` | User không tồn tại trong DB (tài khoản đã bị xóa) |
+  | `500` | `USER_PROFILE_RETRIEVE_FAILED` | Lỗi server không xác định |
+
+  ---
+
+  ## Notes
+
+  - `password`, `refreshToken`, `passwordResetOtpHash`, `passwordResetExpires`, `passwordResetAttempts` bị ẩn tự động qua `toJSON()` của Mongoose model — không bao giờ xuất hiện trong response.
+  - `USER_NOT_FOUND` là trường hợp hiếm — chỉ xảy ra nếu user bị xóa khỏi DB trong khi token vẫn còn hiệu lực.
+}

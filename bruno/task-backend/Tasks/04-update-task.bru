@@ -35,3 +35,115 @@ body:json {
     "dueDate": "2026-06-02T00:00:00.000Z"
   }
 }
+
+docs {
+  # Update Task
+
+  ## Mô tả
+
+  Cập nhật thông tin một task theo `id`. Chỉ cập nhật các field được gửi lên, các field không gửi giữ nguyên. Chỉ có thể cập nhật task của chính mình.
+
+  **Domain:** Task — quản lý công việc cá nhân của user.
+
+  **URL:** `PUT /api/tasks/updateTask/:id`
+
+  ---
+
+  ## cURL
+
+  ```bash
+  curl -X PUT "{{baseUrl}}/api/tasks/updateTask/{{taskId}}" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer {{accessToken}}" \
+    -H "Accept-Language: vi" \
+    -H "X-Request-Id: req-004" \
+    -H "X-App-Version-Code: 10" \
+    -H "X-App-Version-Name: 1.0.0" \
+    -H "X-Platform: android" \
+    -H "X-OS-Version: 14" \
+    -H "X-Device-Model: Pixel 7" \
+    -H "X-Device-Id: device-xyz" \
+    -H "User-Agent: TaskApp/1.0.0" \
+    -d '{"title":"Updated task","status":"in_progress"}'
+  ```
+
+  ---
+
+  ## Headers
+
+  | Header | Bắt buộc | Mô tả |
+  |---|---|---|
+  | `Content-Type` | ✅ | Định dạng body — phải là `application/json` |
+  | `Authorization` | ✅ | Bearer token xác thực người dùng |
+  | `Accept-Language` | ✅ | Ngôn ngữ phản hồi lỗi (`vi`, `en`) |
+  | `X-Request-Id` | ✅ | ID định danh request, dùng để trace log |
+  | `X-App-Version-Code` | ✅ | Version code của app (số nguyên) |
+  | `X-App-Version-Name` | ✅ | Version name của app (vd: `1.0.0`) |
+  | `X-Platform` | ✅ | Nền tảng client (`android`, `ios`, `web`) |
+  | `X-OS-Version` | ✅ | Phiên bản OS của thiết bị |
+  | `X-Device-Model` | ✅ | Model thiết bị (vd: `Pixel 7`, `iPhone 15`) |
+  | `X-Device-Id` | ✅ | ID duy nhất của thiết bị |
+  | `User-Agent` | ✅ | Thông tin client app |
+
+  ---
+
+  ## Path Params
+
+  | Param | Kiểu | Bắt buộc | Mô tả |
+  |---|---|---|---|
+  | `id` | `string` | ✅ | MongoDB ObjectId của task cần cập nhật |
+
+  ## Request Body
+
+  | Field | Kiểu | Bắt buộc | Mô tả |
+  |---|---|---|---|
+  | `title` | `string` | ❌ | Tiêu đề mới — tối đa 200 ký tự |
+  | `description` | `string` | ❌ | Mô tả mới — tối đa 2000 ký tự |
+  | `status` | `string` | ❌ | Trạng thái mới: `todo`, `in_progress`, `pending`, `done` |
+  | `dueDate` | `string\|null` | ❌ | Ngày đến hạn ISO 8601, hoặc `""` để xóa dueDate (set về `null`) |
+
+  ---
+
+  ## Response
+
+  ### ✅ Success — 200 OK
+
+  ```json
+  {
+    "success": true,
+    "data": {
+      "_id": "664abc123...",
+      "userId": "664user...",
+      "title": "Updated task",
+      "description": "Updated from Bruno",
+      "status": "in_progress",
+      "dueDate": "2026-06-02T00:00:00.000Z",
+      "createdAt": "2026-05-01T10:00:00.000Z",
+      "updatedAt": "2026-05-20T12:00:00.000Z"
+    }
+  }
+  ```
+
+  | Field | Kiểu | Mô tả |
+  |---|---|---|
+  | `success` | `boolean` | `true` nếu thành công |
+  | `data` | `object` | Toàn bộ task sau khi cập nhật |
+
+  ### ❌ Error Responses
+
+  | HTTP Status | Error Code | Mô tả |
+  |---|---|---|
+  | `400` | `TASK_INVALID_ID` | `id` không phải MongoDB ObjectId hợp lệ |
+  | `400` | `TASK_INVALID_STATUS` | Giá trị `status` không hợp lệ |
+  | `401` | `UNAUTHORIZED` | Access token không hợp lệ hoặc hết hạn |
+  | `404` | `TASK_NOT_FOUND` | Task không tồn tại hoặc không thuộc về user này |
+  | `500` | `TASK_UPDATE_FAILED` | Lỗi server không xác định |
+
+  ---
+
+  ## Notes
+
+  - Gửi chỉ các field cần thay đổi — các field không gửi giữ nguyên giá trị cũ.
+  - Truyền `dueDate: ""` (chuỗi rỗng) để xóa ngày đến hạn (set về `null`).
+  - `TASK_NOT_FOUND` bao gồm cả trường hợp task tồn tại nhưng không thuộc về user — server không phân biệt để tránh lộ thông tin.
+}

@@ -78,6 +78,8 @@ Create a local `.env` file in the project root. This file is ignored by git.
 
 ```env
 PORT=3000
+# Optional. In local dev, this is auto-detected from your LAN IP if omitted.
+PUBLIC_BASE_URL=http://192.168.1.10:3000
 MONGO_URI=mongodb://127.0.0.1:27017/task-backend
 JWT_SECRET=replace-with-a-long-random-secret
 JWT_EXPIRE=15m
@@ -92,6 +94,7 @@ EMAIL_PASS=your-email-app-password
 Notes:
 
 - `MONGO_URI`, `JWT_SECRET`, and `JWT_REFRESH_SECRET` are required.
+- `PUBLIC_BASE_URL` is optional in local development. If omitted and `NODE_ENV !== production`, the server auto-detects a LAN IP and uses a value such as `http://192.168.1.10:3000`. Set it explicitly in production, or when you need a fixed host/domain. Avatar responses use this value to return absolute image URLs.
 - `DEVICE_ID_HASH_SECRET` is required if you want error logs to include `deviceIdHash`; without it, the server skips device ID hashing instead of logging a predictable hash.
 - `PASSWORD_RESET_OTP_DELIVERY=console` is useful for local demos only. It logs password reset OTPs to the backend console instead of sending email. Do not use it in production.
 - `EMAIL_USER` and `EMAIL_PASS` are required only for `POST /api/auth/forgot-password`.
@@ -150,7 +153,8 @@ The server listens on:
 http://localhost:3000
 ```
 
-It also binds to `0.0.0.0`, so the console prints a LAN URL that can be used by an Android device on the same network.
+It also binds to `0.0.0.0`, so the console prints a LAN URL that can be used by an Android device on the same network. In local development, if `PUBLIC_BASE_URL` is not set, the server uses the preferred LAN URL as the default public base URL and prints it at startup.
+For mobile image loading, do not use `localhost` as the API base URL unless the client runs on the same machine. Use the printed LAN URL so uploaded avatar responses return a URL the device can open directly.
 
 ## Optional Seed Data
 

@@ -25,3 +25,91 @@ headers {
 auth:bearer {
   token: {{accessToken}}
 }
+
+docs {
+  # Logout
+
+  ## Mô tả
+
+  Đăng xuất người dùng đang đăng nhập. Server xóa `refreshToken` khỏi DB, làm vô hiệu hóa phiên làm việc hiện tại. `accessToken` vẫn còn hiệu lực cho đến khi hết hạn tự nhiên (do không có blacklist).
+
+  **Domain:** Auth — xác thực và quản lý phiên đăng nhập.
+
+  **URL:** `POST /api/auth/logout`
+
+  ---
+
+  ## cURL
+
+  ```bash
+  curl -X POST "{{baseUrl}}/api/auth/logout" \
+    -H "Authorization: Bearer {{accessToken}}" \
+    -H "Accept-Language: vi" \
+    -H "X-Request-Id: req-004" \
+    -H "X-App-Version-Code: 10" \
+    -H "X-App-Version-Name: 1.0.0" \
+    -H "X-Platform: android" \
+    -H "X-OS-Version: 14" \
+    -H "X-Device-Model: Pixel 7" \
+    -H "X-Device-Id: device-xyz" \
+    -H "User-Agent: TaskApp/1.0.0"
+  ```
+
+  ---
+
+  ## Headers
+
+  | Header | Bắt buộc | Mô tả |
+  |---|---|---|
+  | `Authorization` | ✅ | Bearer token xác thực người dùng |
+  | `Accept-Language` | ✅ | Ngôn ngữ phản hồi lỗi (`vi`, `en`) |
+  | `X-Request-Id` | ✅ | ID định danh request, dùng để trace log |
+  | `X-App-Version-Code` | ✅ | Version code của app (số nguyên) |
+  | `X-App-Version-Name` | ✅ | Version name của app (vd: `1.0.0`) |
+  | `X-Platform` | ✅ | Nền tảng client (`android`, `ios`, `web`) |
+  | `X-OS-Version` | ✅ | Phiên bản OS của thiết bị |
+  | `X-Device-Model` | ✅ | Model thiết bị (vd: `Pixel 7`, `iPhone 15`) |
+  | `X-Device-Id` | ✅ | ID duy nhất của thiết bị |
+  | `User-Agent` | ✅ | Thông tin client app |
+
+  ---
+
+  ## Request Body
+
+  Không có body.
+
+  ---
+
+  ## Response
+
+  ### ✅ Success — 200 OK
+
+  ```json
+  {
+    "success": true,
+    "data": {
+      "message": "Logged out successfully."
+    }
+  }
+  ```
+
+  | Field | Kiểu | Mô tả |
+  |---|---|---|
+  | `success` | `boolean` | `true` nếu thành công |
+  | `data.message` | `string` | Thông báo xác nhận đăng xuất |
+
+  ### ❌ Error Responses
+
+  | HTTP Status | Error Code | Mô tả |
+  |---|---|---|
+  | `401` | `UNAUTHORIZED` | Access token không hợp lệ hoặc đã hết hạn |
+  | `500` | `AUTH_LOGOUT_FAILED` | Lỗi server không xác định |
+
+  ---
+
+  ## Notes
+
+  - API này yêu cầu `accessToken` hợp lệ — nếu token đã hết hạn, client cần dùng `refreshToken` để lấy token mới trước, hoặc xử lý logout locally.
+  - Sau khi logout, `refreshToken` trong DB bị xóa (`null`). Gọi API `/refresh-token` với token cũ sẽ trả về lỗi `AUTH_INVALID_REFRESH_TOKEN`.
+  - `accessToken` hiện tại không bị blacklist — vẫn hoạt động cho đến hết TTL. Client nên xóa token khỏi storage ngay sau khi logout.
+}
