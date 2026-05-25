@@ -1,16 +1,36 @@
 const User = require('../models/User');
 const { sendError } = require('../utils/response');
-const { toAbsoluteUrl } = require('../utils/url');
+const { getBaseUrl, toAbsoluteUrl } = require('../utils/url');
 const { formatUserResponse, formatUsersResponse } = require('../utils/userResponse');
 const {
   isAllowedUploadedImage,
   removeUploadedFile,
 } = require('../middleware/uploadMiddleware');
 
-const isAllowedAvatarPath = (value) => (
-  value === '' ||
-  /^\/uploads\/avatars\/[^/]+\.(jpg|jpeg|png|webp)$/i.test(String(value || '').trim())
-);
+const avatarPathPattern = /^\/uploads\/avatars\/[a-z0-9._-]+\.(jpg|jpeg|png|webp)$/i;
+
+const normalizeAvatarPath = (req, value) => {
+  const rawValue = String(value || '').trim();
+  if (rawValue === '') return '';
+  if (avatarPathPattern.test(rawValue)) return rawValue;
+  if (!/^https?:\/\//i.test(rawValue)) return null;
+
+  const baseUrl = getBaseUrl(req);
+  if (!baseUrl) return null;
+
+  try {
+    const avatarUrl = new URL(rawValue);
+    const allowedBaseUrl = new URL(baseUrl);
+
+    if (avatarUrl.origin !== allowedBaseUrl.origin) return null;
+    if (avatarUrl.search || avatarUrl.hash) return null;
+    if (!avatarPathPattern.test(avatarUrl.pathname)) return null;
+
+    return avatarUrl.pathname;
+  } catch (error) {
+    return null;
+  }
+};
 
 // ==================== GET PROFILE ====================
 const getProfile = async (req, res) => {
@@ -44,11 +64,12 @@ const updateProfile = async (req, res) => {
 
     // Only update allowed fields
     if (avatar !== undefined) {
-      if (!isAllowedAvatarPath(avatar)) {
+      const avatarPath = normalizeAvatarPath(req, avatar);
+      if (avatarPath === null) {
         return sendError(req, res, 400, 'USER_AVATAR_INVALID_URL');
       }
 
-      user.avatar = avatar;
+      user.avatar = avatarPath;
     }
     if (phone !== undefined) user.phone = phone;
     if (fullName !== undefined) user.fullName = fullName;

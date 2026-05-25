@@ -96,7 +96,7 @@ docs {
   |---|---|---|---|
   | `fullName` | `string` | ❌ | Tên hiển thị đầy đủ của người dùng |
   | `phone` | `string` | ❌ | Số điện thoại, định dạng `+?[9-15 chữ số]` (vd: `+84901234567`) |
-  | `avatar` | `string` | ❌ | Đường dẫn URL ảnh đại diện (thường lấy từ API upload avatar) |
+  | `avatar` | `string` | ❌ | URL đầy đủ hoặc path tương đối ảnh đại diện do API upload avatar trả về |
 
   > Gửi chỉ các field cần cập nhật, các field không gửi sẽ giữ nguyên giá trị cũ.
 
@@ -115,7 +115,7 @@ docs {
       "email": "user@example.com",
       "fullName": "Nguyen Van A",
       "phone": "+84901234567",
-      "avatar": "/uploads/avatars/avatar.jpg",
+      "avatar": "http://192.168.1.10:3000/uploads/avatars/avatar.jpg",
       "createdAt": "2024-01-01T00:00:00.000Z",
       "updatedAt": "2024-06-01T12:00:00.000Z"
     }
@@ -141,6 +141,7 @@ docs {
   | HTTP Status | Error Code | Mô tả |
   |---|---|---|
   | `400` | `COMMON_VALIDATION_ERROR` | Dữ liệu không hợp lệ (vd: sai định dạng phone) |
+  | `400` | `USER_AVATAR_INVALID_URL` | `avatar` không phải URL/path ảnh do server upload trả về |
   | `401` | `UNAUTHORIZED` | Token không hợp lệ hoặc đã hết hạn |
   | `404` | `USER_NOT_FOUND` | Không tìm thấy user trong DB |
   | `500` | `USER_PROFILE_UPDATE_FAILED` | Lỗi server không xác định |
@@ -151,6 +152,7 @@ docs {
 
   - Tất cả các field trong body đều **optional** — có thể gửi một field hoặc nhiều field cùng lúc.
   - Field `email` và `password` **không thể cập nhật** qua API này — sẽ bị bỏ qua hoàn toàn dù có gửi lên.
-  - Để đổi avatar, nên upload file trước qua `POST /api/user/uploadAvatar` rồi lấy URL trả về truyền vào field `avatar`.
+  - Để đổi avatar, nên upload file trước qua `POST /api/user/uploadAvatar`. Field `avatar` có thể nhận `data.avatar` (absolute URL) hoặc `data.avatarPath` (relative path) từ response upload.
+  - Server chỉ nhận avatar thuộc `/uploads/avatars` của chính backend; external URL sẽ bị reject để tránh tracking/injection.
   - `phone` phải đúng regex `^(\+?\d{9,15})?$` — chuỗi rỗng `""` được chấp nhận (xóa phone).
 }
