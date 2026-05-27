@@ -34,9 +34,9 @@ task-backend/
 
 1. `server.js` loads environment variables, connects to MongoDB, configures middleware, mounts API routes, and starts the HTTP/Socket.IO server.
 2. Public auth routes issue JWT access and refresh tokens.
-3. Protected routes use `middleware/authMiddleware.js`, which verifies `Authorization: Bearer <token>` and attaches the authenticated user to `req.user`.
+3. Protected routes use `middleware/authMiddleware.js`, which verifies `Authorization: Bearer <token>`, checks the token `authVersion`, and attaches the authenticated user to `req.user`.
 4. Controllers validate request data, call Mongoose models, and return a consistent `{ success, data | message }` response shape.
-5. Socket.IO verifies the JWT from `socket.handshake.auth.token` or `socket.handshake.query.token`.
+5. Socket.IO verifies the JWT and token `authVersion` from `socket.handshake.auth.token` or `socket.handshake.query.token`, then re-checks `authVersion` before handling inbound events.
 
 ## API Modules
 
@@ -55,9 +55,9 @@ The project uses MongoDB through Mongoose.
 ### Models
 
 - **User**
-  - `email`, `fullName`, `password`, `avatar`, `phone`, `refreshToken`
+  - `email`, `fullName`, `password`, `avatar`, `phone`, `refreshToken`, `authVersion`
   - Passwords are hashed before save.
-  - `password` and `refreshToken` are removed from JSON responses.
+  - `password`, `refreshToken`, and `authVersion` are removed from JSON responses.
 
 - **Task**
   - `userId`, `title`, `description`, `status`, `dueDate`
@@ -255,9 +255,9 @@ The mobile-friendly password reset flow uses an email OTP instead of sending a n
 
 1. Call `POST /api/auth/forgot-password` with `{ "email": "user@example.com" }`.
 2. The API always returns a generic success response when the request is valid, so it does not reveal whether the email exists.
-3. If the email belongs to a user, the API sends a 6-digit OTP that expires after 10 minutes.
+3. If the email belongs to a user, the API sends a 6-digit OTP that expires after 5 minutes.
 4. Call `POST /api/auth/reset-password` with `{ "email": "user@example.com", "otp": "123456", "newPassword": "password1234" }`.
-5. The API allows up to 5 wrong OTP attempts and clears the OTP after a successful reset.
+5. The API allows up to 5 wrong OTP attempts, clears the OTP after a successful reset, and invalidates existing access/refresh tokens.
 
 For local demos without SMTP, set:
 

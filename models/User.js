@@ -36,6 +36,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    authVersion: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     passwordResetOtpHash: {
       type: String,
       default: null,
@@ -72,6 +77,7 @@ userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;
   delete obj.refreshToken;
+  delete obj.authVersion;
   delete obj.passwordResetOtpHash;
   delete obj.passwordResetExpires;
   delete obj.passwordResetAttempts;

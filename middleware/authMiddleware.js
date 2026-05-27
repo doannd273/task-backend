@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { sendError } = require('../utils/response');
+const { isAuthVersionValid } = require('../utils/authVersion');
 
 const authMiddleware = async (req, res, next) => {
   try {
@@ -19,6 +20,10 @@ const authMiddleware = async (req, res, next) => {
     const user = await User.findById(decoded.userId);
     if (!user) {
       return sendError(req, res, 401, 'AUTH_USER_NOT_FOUND');
+    }
+
+    if (!isAuthVersionValid(decoded, user)) {
+      return sendError(req, res, 401, 'AUTH_INVALID_TOKEN');
     }
 
     // Gắn user vào request để controller sử dụng

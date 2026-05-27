@@ -38,10 +38,12 @@
 - `forgot-password` khong con gui password moi qua email nua.
 - OTP reset password:
   - 6 digits
-  - expires sau 10 phut
+  - expires sau 5 phut
   - max 5 lan sai
   - luu hash bang bcrypt, khong luu plain OTP
-  - reset thanh cong thi clear OTP va clear `refreshToken`
+  - reset thanh cong thi clear OTP, clear `refreshToken`, va bump `authVersion`
+- Da them `authVersion` vao `User` model de invalidate access/refresh token cu sau change/reset password.
+- `PUT /api/user/changePassword` hien tai doi password xong se clear `refreshToken` va bump `authVersion`, bat user dang nhap lai tren moi thiet bi.
 - Demo mode cho forgot password:
   - set `.env`: `PASSWORD_RESET_OTP_DELIVERY=console`
   - backend se in OTP ra terminal thay vi gui email that

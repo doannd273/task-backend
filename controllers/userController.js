@@ -2,6 +2,7 @@ const User = require('../models/User');
 const { sendError } = require('../utils/response');
 const { getBaseUrl, toAbsoluteUrl } = require('../utils/url');
 const { formatUserResponse, formatUsersResponse } = require('../utils/userResponse');
+const { bumpAuthVersion } = require('../utils/authVersion');
 const {
   isAllowedUploadedImage,
   removeUploadedFile,
@@ -122,8 +123,10 @@ const changePassword = async (req, res) => {
       return sendError(req, res, 401, 'USER_CURRENT_PASSWORD_INCORRECT');
     }
 
-    // Update password (pre-save hook will hash it)
+    // Update password and revoke all existing tokens.
     user.password = newPassword;
+    user.refreshToken = null;
+    bumpAuthVersion(user);
     await user.save();
 
     res.status(200).json({

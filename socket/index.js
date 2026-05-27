@@ -1,18 +1,26 @@
 const jwt = require('jsonwebtoken');
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
+const User = require('../models/User');
+const { getAuthVersion, isAuthVersionValid } = require('../utils/authVersion');
 
 const socketHandler = (io) => {
   // Middleware xác thực token WebSocket
-  io.use((socket, next) => {
+  io.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth.token || socket.handshake.query.token;
       if (!token) {
         return next(new Error('Authentication error: Token missing'));
       }
-      
+
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      socket.userId = decoded.userId;
+      const user = await User.findById(decoded.userId).select('_id authVersion');
+      if (!user || !isAuthVersionValid(decoded, user)) {
+        return next(new Error('Authentication error: Invalid or expired token'));
+      }
+
+      socket.userId = user._id.toString();
+      socket.authVersion = getAuthVersion(decoded);
       next();
     } catch (err) {
       return next(new Error('Authentication error: Invalid or expired token'));
@@ -21,6 +29,21 @@ const socketHandler = (io) => {
 
   io.on('connection', (socket) => {
     console.log(`🔌 User connected: ${socket.userId} (socket_id: ${socket.id})`);
+
+    socket.use(async (_packet, next) => {
+      try {
+        const user = await User.findById(socket.userId).select('_id authVersion');
+        if (!user || !isAuthVersionValid(socket, user)) {
+          socket.disconnect(true);
+          return next(new Error('Authentication error: Invalid or expired token'));
+        }
+
+        next();
+      } catch (err) {
+        socket.disconnect(true);
+        return next(new Error('Authentication error: Invalid or expired token'));
+      }
+    });
 
     // Gán userId vào 1 room cá nhân để có thể gửi realtime notificaton 1-1
     socket.join(socket.userId);

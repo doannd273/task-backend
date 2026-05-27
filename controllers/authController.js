@@ -6,21 +6,22 @@ const User = require('../models/User');
 const { sendError } = require('../utils/response');
 const { translate } = require('../utils/i18n');
 const { toAbsoluteUrl } = require('../utils/url');
+const { bumpAuthVersion, getAuthVersion, isAuthVersionValid } = require('../utils/authVersion');
 
-const PASSWORD_RESET_OTP_TTL_MS = 10 * 60 * 1000;
+const PASSWORD_RESET_OTP_TTL_MS = 5 * 60 * 1000;
 const PASSWORD_RESET_MAX_ATTEMPTS = 5;
 const PASSWORD_RESET_OTP_DELIVERY_CONSOLE = 'console';
 
 // Tạo Access Token (ngắn hạn)
-const generateAccessToken = (userId) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, {
+const generateAccessToken = (user) => {
+  return jwt.sign({ userId: user._id, authVersion: getAuthVersion(user) }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE || '15m',
   });
 };
 
 // Tạo Refresh Token (dài hạn)
-const generateRefreshToken = (userId) => {
-  return jwt.sign({ userId }, process.env.JWT_REFRESH_SECRET, {
+const generateRefreshToken = (user) => {
+  return jwt.sign({ userId: user._id, authVersion: getAuthVersion(user) }, process.env.JWT_REFRESH_SECRET, {
     expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d',
   });
 };
@@ -45,8 +46,8 @@ const register = async (req, res) => {
     const user = await User.create({ email, password, fullName });
 
     // Tạo tokens
-    const accessToken = generateAccessToken(user._id);
-    const refreshToken = generateRefreshToken(user._id);
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
 
     // Lưu refresh token vào DB
     user.refreshToken = refreshToken;
@@ -107,8 +108,8 @@ const login = async (req, res) => {
     }
 
     // Tạo tokens
-    const accessToken = generateAccessToken(user._id);
-    const refreshToken = generateRefreshToken(user._id);
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
 
     // Lưu refresh token vào DB
     user.refreshToken = refreshToken;
@@ -152,15 +153,15 @@ const refreshToken = async (req, res) => {
 
     // Tìm user và kiểm tra refresh token khớp
     const user = await User.findById(decoded.userId);
-    if (!user || user.refreshToken !== token) {
+    if (!user || user.refreshToken !== token || !isAuthVersionValid(decoded, user)) {
       return sendError(req, res, 401, 'AUTH_INVALID_REFRESH_TOKEN');
     }
 
     // Tạo access token mới
-    const newAccessToken = generateAccessToken(user._id);
+    const newAccessToken = generateAccessToken(user);
 
     // (Tuỳ chọn) Rotate refresh token: tạo refresh token mới luôn
-    const newRefreshToken = generateRefreshToken(user._id);
+    const newRefreshToken = generateRefreshToken(user);
     user.refreshToken = newRefreshToken;
     await user.save();
 
@@ -238,7 +239,7 @@ const sendPasswordResetOtpEmail = async (email, otp, req) => {
     from: process.env.EMAIL_USER,
     to: email,
     subject: 'Reset Password OTP - Task Manager API',
-    text: `Xin chào,\n\nMã đặt lại mật khẩu của bạn là: ${otp}\n\nMã này có hiệu lực trong 10 phút. Nếu bạn không yêu cầu đặt lại mật khẩu, hãy bỏ qua email này.\n\nTrân trọng!`,
+    text: `Xin chào,\n\nMã đặt lại mật khẩu của bạn là: ${otp}\n\nMã này có hiệu lực trong 5 phút. Nếu bạn không yêu cầu đặt lại mật khẩu, hãy bỏ qua email này.\n\nTrân trọng!`,
   });
 };
 
@@ -362,6 +363,7 @@ const resetPassword = async (req, res) => {
 
     user.password = newPassword;
     user.refreshToken = null;
+    bumpAuthVersion(user);
     clearPasswordResetOtp(user);
     await user.save();
 
