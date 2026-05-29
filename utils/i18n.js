@@ -56,6 +56,12 @@ const messages = {
     USER_AVATAR_UPLOAD_FAILED: 'Tải ảnh đại diện thất bại.',
     USER_SEARCH_FAILED: 'Tìm kiếm người dùng thất bại.',
 
+    DEVICE_REGISTER_REQUIRED_FIELDS: 'Device token là bắt buộc.',
+    DEVICE_INVALID_PLATFORM: 'Nền tảng không hợp lệ. Giá trị hợp lệ: {{platforms}}.',
+    DEVICE_UNREGISTER_NOT_FOUND: 'Không tìm thấy device token hoặc token không thuộc về người dùng này.',
+    DEVICE_REGISTER_FAILED: 'Đăng ký device token thất bại.',
+    DEVICE_UNREGISTER_FAILED: 'Hủy đăng ký device token thất bại.',
+
     TASK_INVALID_STATUS: 'Trạng thái không hợp lệ. Giá trị hợp lệ: {{statuses}}.',
     TASK_RETRIEVE_FAILED: 'Không thể lấy danh sách công việc.',
     TASK_STATS_RETRIEVE_FAILED: 'Không thể lấy thống kê công việc.',
@@ -143,6 +149,12 @@ const messages = {
     USER_AVATAR_INVALID_URL: 'Invalid avatar URL. Use the avatar URL or path returned by the server upload API.',
     USER_AVATAR_UPLOAD_FAILED: 'Failed to upload avatar.',
     USER_SEARCH_FAILED: 'Failed to search users.',
+
+    DEVICE_REGISTER_REQUIRED_FIELDS: 'Device token is required.',
+    DEVICE_INVALID_PLATFORM: 'Invalid platform. Must be one of: {{platforms}}.',
+    DEVICE_UNREGISTER_NOT_FOUND: 'Device token not found or does not belong to this user.',
+    DEVICE_REGISTER_FAILED: 'Failed to register device token.',
+    DEVICE_UNREGISTER_FAILED: 'Failed to unregister device token.',
 
     TASK_INVALID_STATUS: 'Invalid status. Must be one of: {{statuses}}.',
     TASK_RETRIEVE_FAILED: 'Failed to retrieve tasks.',

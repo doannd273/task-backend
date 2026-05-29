@@ -21,6 +21,10 @@ if (!process.env.PUBLIC_BASE_URL && process.env.NODE_ENV !== 'production' && aut
 // Kết nối MongoDB
 connectDB();
 
+// Cron jobs
+const { scheduleDueDateReminder } = require('./jobs/dueDateReminderJob');
+scheduleDueDateReminder();
+
 const app = express();
 
 // ==================== MIDDLEWARE ====================
@@ -36,9 +40,14 @@ app.use('/uploads', express.static('uploads'));
 // ==================== ROUTES ====================
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/user', require('./routes/user'));
+app.use('/api/devices', require('./routes/deviceRoutes'));
 app.use('/api/tasks', require('./routes/task'));
 app.use('/api/conversations', require('./routes/conversation'));
 app.use('/api/messages', require('./routes/message'));
+
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/api/dev', require('./routes/devRoutes'));
+}
 
 // Health check
 app.get('/', (req, res) => {

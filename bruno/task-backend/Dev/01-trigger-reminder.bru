@@ -1,0 +1,110 @@
+meta {
+  name: Trigger Due Date Reminder
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/dev/trigger-reminder
+  body: none
+  auth: bearer
+}
+
+headers {
+  Accept-Language: {{language}}
+  X-Request-Id: {{requestId}}
+  X-App-Version-Code: {{appVersionCode}}
+  X-App-Version-Name: {{appVersionName}}
+  X-Platform: {{platform}}
+  X-OS-Version: {{osVersion}}
+  X-Device-Model: {{deviceModel}}
+  X-Device-Id: {{deviceId}}
+  User-Agent: {{userAgent}}
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  # Trigger Due Date Reminder
+
+  ## Mô tả
+
+  Trigger thủ công cron job gửi FCM push reminder cho các task sắp đến hạn. Chỉ hoạt động khi `NODE_ENV !== production` — endpoint này không tồn tại trên môi trường production.
+
+  **Domain:** Dev — các endpoint debug/test nội bộ.
+
+  **URL:** `POST /api/dev/trigger-reminder`
+
+  ---
+
+  ## cURL
+
+  ```bash
+  curl -X POST "{{baseUrl}}/api/dev/trigger-reminder" \
+    -H "Authorization: Bearer {{accessToken}}" \
+    -H "Accept-Language: vi" \
+    -H "X-Request-Id: req-dev-001" \
+    -H "X-App-Version-Code: 10" \
+    -H "X-App-Version-Name: 1.0.0" \
+    -H "X-Platform: android" \
+    -H "X-OS-Version: 14" \
+    -H "X-Device-Model: Pixel 7" \
+    -H "X-Device-Id: device-xyz" \
+    -H "User-Agent: TaskApp/1.0.0"
+  ```
+
+  ---
+
+  ## Headers
+
+  | Header | Bắt buộc | Mô tả |
+  |---|---|---|
+  | `Authorization` | ✅ | Bearer token xác thực người dùng |
+  | `Accept-Language` | ✅ | Ngôn ngữ phản hồi lỗi (`vi`, `en`) |
+  | `X-Request-Id` | ✅ | ID định danh request, dùng để trace log |
+  | `X-App-Version-Code` | ✅ | Version code của app |
+  | `X-App-Version-Name` | ✅ | Version name của app |
+  | `X-Platform` | ✅ | Nền tảng client (`android`, `ios`, `web`) |
+  | `X-OS-Version` | ✅ | Phiên bản OS của thiết bị |
+  | `X-Device-Model` | ✅ | Model thiết bị |
+  | `X-Device-Id` | ✅ | ID duy nhất của thiết bị |
+  | `User-Agent` | ✅ | Thông tin client app |
+
+  ---
+
+  ## Response
+
+  ### ✅ Success — 200 OK
+
+  ```json
+  {
+    "success": true,
+    "message": "Due date reminder job triggered successfully."
+  }
+  ```
+
+  | Field | Kiểu | Mô tả |
+  |---|---|---|
+  | `success` | `boolean` | `true` nếu job chạy xong không có lỗi |
+  | `message` | `string` | Thông báo xác nhận |
+
+  ### ❌ Error Responses
+
+  | HTTP Status | Error Code | Mô tả |
+  |---|---|---|
+  | `401` | `AUTH_ACCESS_TOKEN_REQUIRED` | Thiếu access token |
+  | `401` | `AUTH_INVALID_TOKEN` | Access token không hợp lệ hoặc hết hạn |
+  | `404` | `COMMON_ROUTE_NOT_FOUND` | Endpoint không tồn tại trên production |
+  | `500` | `COMMON_INTERNAL_ERROR` | Lỗi server khi chạy job |
+
+  ---
+
+  ## Notes
+
+  - Response `200` chỉ có nghĩa là job đã chạy xong, không đảm bảo tất cả FCM đều gửi thành công.
+  - Kết quả chi tiết (số task, số notification sent/failed) xuất hiện trong server logs.
+  - Nếu không có task nào đến hạn hôm nay hoặc ngày mai, job vẫn trả `200` và log `No tasks due today or tomorrow.`
+  - Stale FCM token sẽ bị auto-delete khỏi DB khi job chạy.
+}

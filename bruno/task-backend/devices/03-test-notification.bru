@@ -1,0 +1,142 @@
+meta {
+  name: Test Notification
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/devices/test-notification
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+  Accept-Language: {{language}}
+  X-Request-Id: {{requestId}}
+  X-App-Version-Code: {{appVersionCode}}
+  X-App-Version-Name: {{appVersionName}}
+  X-Platform: {{platform}}
+  X-OS-Version: {{osVersion}}
+  X-Device-Model: {{deviceModel}}
+  X-Device-Id: {{deviceId}}
+  User-Agent: {{userAgent}}
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "token": "{{deviceFcmToken}}",
+    "title": "Test Notification",
+    "body": "This is a test push notification.",
+    "data": {
+      "type": "test"
+    }
+  }
+}
+
+docs {
+  # Test Notification
+
+  ## Mô tả
+
+  Gửi một FCM push notification thử nghiệm đến device token chỉ định. Dùng để xác minh FCM setup hoạt động end-to-end từ server đến device thật.
+
+  **Domain:** Devices — quản lý push notification target cho từng user.
+
+  **URL:** `POST /api/devices/test-notification`
+
+  ---
+
+  ## cURL
+
+  ```bash
+  curl -X POST "{{baseUrl}}/api/devices/test-notification" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer {{accessToken}}" \
+    -H "Accept-Language: vi" \
+    -H "X-Request-Id: req-device-003" \
+    -H "X-App-Version-Code: 10" \
+    -H "X-App-Version-Name: 1.0.0" \
+    -H "X-Platform: android" \
+    -H "X-OS-Version: 14" \
+    -H "X-Device-Model: Pixel 7" \
+    -H "X-Device-Id: device-xyz" \
+    -H "User-Agent: TaskApp/1.0.0" \
+    -d '{"token":"fcm-real-token","title":"Test","body":"Hello from server","data":{"type":"test"}}'
+  ```
+
+  ---
+
+  ## Headers
+
+  | Header | Bắt buộc | Mô tả |
+  |---|---|---|
+  | `Content-Type` | ✅ | Định dạng body — phải là `application/json` |
+  | `Authorization` | ✅ | Bearer token xác thực người dùng |
+  | `Accept-Language` | ✅ | Ngôn ngữ phản hồi lỗi (`vi`, `en`) |
+  | `X-Request-Id` | ✅ | ID định danh request, dùng để trace log |
+  | `X-App-Version-Code` | ✅ | Version code của app |
+  | `X-App-Version-Name` | ✅ | Version name của app |
+  | `X-Platform` | ✅ | Nền tảng client (`android`, `ios`, `web`) |
+  | `X-OS-Version` | ✅ | Phiên bản OS của thiết bị |
+  | `X-Device-Model` | ✅ | Model thiết bị |
+  | `X-Device-Id` | ✅ | ID duy nhất của thiết bị |
+  | `User-Agent` | ✅ | Thông tin client app |
+
+  ---
+
+  ## Request Body
+
+  | Field | Kiểu | Bắt buộc | Mô tả |
+  |---|---|---|---|
+  | `token` | `string` | ✅ | FCM registration token của device cần test |
+  | `title` | `string` | ❌ | Tiêu đề notification; mặc định `"Test Notification"` |
+  | `body` | `string` | ❌ | Nội dung notification; mặc định `"This is a test push notification."` |
+  | `data` | `object` | ❌ | Custom data payload key-value strings; mặc định `{}` |
+
+  ---
+
+  ## Response
+
+  ### ✅ Success — 200 OK
+
+  ```json
+  {
+    "success": true,
+    "message": "Test notification sent successfully.",
+    "data": {
+      "messageId": "projects/your-project/messages/0:1234567890"
+    }
+  }
+  ```
+
+  | Field | Kiểu | Mô tả |
+  |---|---|---|
+  | `success` | `boolean` | `true` nếu FCM chấp nhận message |
+  | `message` | `string` | Thông báo xác nhận |
+  | `data.messageId` | `string` | Message ID trả về từ FCM — dùng để trace trên Firebase Console |
+
+  ### ❌ Error Responses
+
+  | HTTP Status | Error Code | Mô tả |
+  |---|---|---|
+  | `400` | `DEVICE_REGISTER_REQUIRED_FIELDS` | Thiếu `token` |
+  | `400` | `DEVICE_TOKEN_NOT_REGISTERED` | Token đã bị xóa khỏi FCM (app uninstall hoặc token refresh) |
+  | `400` | `DEVICE_TOKEN_INVALID` | Token không đúng format FCM |
+  | `401` | `AUTH_ACCESS_TOKEN_REQUIRED` | Thiếu access token |
+  | `401` | `AUTH_INVALID_TOKEN` | Access token không hợp lệ hoặc hết hạn |
+  | `500` | `DEVICE_SEND_NOTIFICATION_FAILED` | Lỗi server không xác định khi gọi FCM |
+
+  ---
+
+  ## Notes
+
+  - Endpoint này chỉ dùng cho mục đích debug/test — không nên expose production.
+  - FCM trả về `200` ngay cả khi device offline; notification sẽ được deliver khi device online lại.
+  - Nếu nhận `DEVICE_TOKEN_NOT_REGISTERED`, cần xóa token khỏi DB vì token đã invalid.
+  - `data` values phải là string — FCM không hỗ trợ nested objects trong data payload.
+}

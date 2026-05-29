@@ -12,6 +12,8 @@ node_modules/
 *.p12
 *.pfx
 .npmrc
+config/serviceAccountKey.json
+config/config:serviceAccountKey.json
 
 # Bruno local environments may contain persisted access/refresh tokens
 bruno/**/environments/*.bru
