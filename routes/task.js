@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   getTasks,
   getTaskStats,
+  getTaskById,
   createTask,
   updateTask,
   deleteTask,
@@ -17,6 +18,9 @@ router.get('/getTasks', getTasks);
 
 // GET    /api/tasks/getTaskStats       → Thống kê task
 router.get('/getTaskStats', getTaskStats);
+
+// GET    /api/tasks/getTaskById/:id    → Lấy chi tiết task
+router.get('/getTaskById/:id', getTaskById);
 
 // POST   /api/tasks/createTask         → Tạo task mới
 router.post('/createTask', createTask);

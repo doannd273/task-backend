@@ -2,7 +2,7 @@ const express = require('express');
 const {
   registerToken,
   unregisterToken,
-  testNotification,
+  testNotificationToMe,
 } = require('../controllers/deviceController');
 const authMiddleware = require('../middleware/authMiddleware');
 
@@ -16,7 +16,7 @@ router.post('/register-token', registerToken);
 // DELETE /api/devices/unregister-token
 router.delete('/unregister-token', unregisterToken);
 
-// POST /api/devices/test-notification
-router.post('/test-notification', testNotification);
+// POST /api/devices/test-notification-to-me
+router.post('/test-notification-to-me', testNotificationToMe);
 
 module.exports = router;

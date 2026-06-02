@@ -61,6 +61,8 @@ const messages = {
     DEVICE_UNREGISTER_NOT_FOUND: 'Không tìm thấy device token hoặc token không thuộc về người dùng này.',
     DEVICE_REGISTER_FAILED: 'Đăng ký device token thất bại.',
     DEVICE_UNREGISTER_FAILED: 'Hủy đăng ký device token thất bại.',
+    DEVICE_TOKENS_NOT_FOUND: 'Không tìm thấy device token đã đăng ký cho tài khoản này.',
+    DEVICE_SEND_NOTIFICATION_FAILED: 'Gửi thông báo thử nghiệm thất bại.',
 
     TASK_INVALID_STATUS: 'Trạng thái không hợp lệ. Giá trị hợp lệ: {{statuses}}.',
     TASK_RETRIEVE_FAILED: 'Không thể lấy danh sách công việc.',
@@ -155,6 +157,8 @@ const messages = {
     DEVICE_UNREGISTER_NOT_FOUND: 'Device token not found or does not belong to this user.',
     DEVICE_REGISTER_FAILED: 'Failed to register device token.',
     DEVICE_UNREGISTER_FAILED: 'Failed to unregister device token.',
+    DEVICE_TOKENS_NOT_FOUND: 'No registered device tokens found for this account.',
+    DEVICE_SEND_NOTIFICATION_FAILED: 'Failed to send test notification.',
 
     TASK_INVALID_STATUS: 'Invalid status. Must be one of: {{statuses}}.',
     TASK_RETRIEVE_FAILED: 'Failed to retrieve tasks.',

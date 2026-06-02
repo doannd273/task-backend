@@ -1,0 +1,103 @@
+meta {
+  name: Get Task By Id
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/tasks/getTaskById/{{taskId}}
+  body: none
+  auth: bearer
+}
+
+headers {
+  Accept-Language: {{language}}
+  X-Request-Id: {{requestId}}
+  X-App-Version-Code: {{appVersionCode}}
+  X-App-Version-Name: {{appVersionName}}
+  X-Platform: {{platform}}
+  X-OS-Version: {{osVersion}}
+  X-Device-Model: {{deviceModel}}
+  X-Device-Id: {{deviceId}}
+  User-Agent: {{userAgent}}
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  # Get Task By Id
+
+  ## Mô tả
+
+  Lấy chi tiết một task theo `id`. Endpoint chỉ trả task thuộc về user đang đăng nhập.
+
+  **Domain:** Task — quản lý công việc cá nhân của user.
+
+  **URL:** `GET /api/tasks/getTaskById/:id`
+
+  ---
+
+  ## cURL
+
+  ```bash
+  curl -X GET "{{baseUrl}}/api/tasks/getTaskById/{{taskId}}" \
+    -H "Authorization: Bearer {{accessToken}}" \
+    -H "Accept-Language: vi" \
+    -H "X-Request-Id: req-task-by-id-001" \
+    -H "X-App-Version-Code: 10" \
+    -H "X-App-Version-Name: 1.0.0" \
+    -H "X-Platform: android" \
+    -H "X-OS-Version: 14" \
+    -H "X-Device-Model: Pixel 7" \
+    -H "X-Device-Id: device-xyz" \
+    -H "User-Agent: TaskApp/1.0.0"
+  ```
+
+  ---
+
+  ## Path Params
+
+  | Param | Kiểu | Bắt buộc | Mô tả |
+  |---|---|---|---|
+  | `id` | `string` | ✅ | MongoDB ObjectId của task |
+
+  ---
+
+  ## Response
+
+  ### ✅ Success — 200 OK
+
+  ```json
+  {
+    "success": true,
+    "data": {
+      "_id": "664abc123...",
+      "userId": "664user...",
+      "title": "Fix login bug",
+      "description": "Investigate crash on Android",
+      "status": "in_progress",
+      "dueDate": "2026-06-01T00:00:00.000Z",
+      "createdAt": "2026-05-01T10:00:00.000Z",
+      "updatedAt": "2026-05-10T08:00:00.000Z"
+    }
+  }
+  ```
+
+  ### ❌ Error Responses
+
+  | HTTP Status | Error Code | Mô tả |
+  |---|---|---|
+  | `400` | `TASK_INVALID_ID` | `id` không phải MongoDB ObjectId hợp lệ |
+  | `401` | `AUTH_ACCESS_TOKEN_REQUIRED` | Thiếu access token |
+  | `401` | `AUTH_INVALID_TOKEN` | Access token không hợp lệ hoặc hết hạn |
+  | `404` | `TASK_NOT_FOUND` | Task không tồn tại hoặc không thuộc về user này |
+  | `500` | `TASK_RETRIEVE_FAILED` | Lỗi server không xác định |
+
+  ---
+
+  ## Notes
+
+  - `TASK_NOT_FOUND` bao gồm cả trường hợp task tồn tại nhưng thuộc user khác để tránh lộ dữ liệu.
+}

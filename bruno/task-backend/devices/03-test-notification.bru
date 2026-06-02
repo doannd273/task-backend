@@ -1,11 +1,11 @@
 meta {
-  name: Test Notification
+  name: Test Notification To Me
   type: http
   seq: 3
 }
 
 post {
-  url: {{baseUrl}}/api/devices/test-notification
+  url: {{baseUrl}}/api/devices/test-notification-to-me
   body: json
   auth: bearer
 }
@@ -29,7 +29,6 @@ auth:bearer {
 
 body:json {
   {
-    "token": "{{deviceFcmToken}}",
     "title": "Test Notification",
     "body": "This is a test push notification.",
     "data": {
@@ -39,22 +38,24 @@ body:json {
 }
 
 docs {
-  # Test Notification
+  # Test Notification To Me
 
   ## Mô tả
 
-  Gửi một FCM push notification thử nghiệm đến device token chỉ định. Dùng để xác minh FCM setup hoạt động end-to-end từ server đến device thật.
+  Gửi FCM push notification thử nghiệm đến tất cả device token đã đăng ký của người dùng đang đăng nhập.
+
+  Endpoint này dùng `Authorization: Bearer {{accessToken}}` để xác định user, sau đó backend tự query `DeviceToken` theo `userId`. Bruno không cần truyền `deviceFcmToken`.
 
   **Domain:** Devices — quản lý push notification target cho từng user.
 
-  **URL:** `POST /api/devices/test-notification`
+  **URL:** `POST /api/devices/test-notification-to-me`
 
   ---
 
   ## cURL
 
   ```bash
-  curl -X POST "{{baseUrl}}/api/devices/test-notification" \
+  curl -X POST "{{baseUrl}}/api/devices/test-notification-to-me" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer {{accessToken}}" \
     -H "Accept-Language: vi" \
@@ -66,7 +67,7 @@ docs {
     -H "X-Device-Model: Pixel 7" \
     -H "X-Device-Id: device-xyz" \
     -H "User-Agent: TaskApp/1.0.0" \
-    -d '{"token":"fcm-real-token","title":"Test","body":"Hello from server","data":{"type":"test"}}'
+    -d '{"title":"Test","body":"Hello from server","data":{"type":"test"}}'
   ```
 
   ---
@@ -93,7 +94,6 @@ docs {
 
   | Field | Kiểu | Bắt buộc | Mô tả |
   |---|---|---|---|
-  | `token` | `string` | ✅ | FCM registration token của device cần test |
   | `title` | `string` | ❌ | Tiêu đề notification; mặc định `"Test Notification"` |
   | `body` | `string` | ❌ | Nội dung notification; mặc định `"This is a test push notification."` |
   | `data` | `object` | ❌ | Custom data payload key-value strings; mặc định `{}` |
@@ -109,7 +109,12 @@ docs {
     "success": true,
     "message": "Test notification sent successfully.",
     "data": {
-      "messageId": "projects/your-project/messages/0:1234567890"
+      "sentCount": 1,
+      "failedCount": 0,
+      "removedInvalidTokenCount": 0,
+      "messageIds": [
+        "projects/your-project/messages/0:1234567890"
+      ]
     }
   }
   ```
@@ -118,25 +123,47 @@ docs {
   |---|---|---|
   | `success` | `boolean` | `true` nếu FCM chấp nhận message |
   | `message` | `string` | Thông báo xác nhận |
-  | `data.messageId` | `string` | Message ID trả về từ FCM — dùng để trace trên Firebase Console |
+  | `data.sentCount` | `number` | Số device token gửi thành công |
+  | `data.failedCount` | `number` | Số device token gửi thất bại |
+  | `data.removedInvalidTokenCount` | `number` | Số token invalid đã bị backend dọn khỏi DB |
+  | `data.messageIds` | `string[]` | Message ID trả về từ FCM — dùng để trace trên Firebase Console |
 
   ### ❌ Error Responses
 
   | HTTP Status | Error Code | Mô tả |
   |---|---|---|
-  | `400` | `DEVICE_REGISTER_REQUIRED_FIELDS` | Thiếu `token` |
-  | `400` | `DEVICE_TOKEN_NOT_REGISTERED` | Token đã bị xóa khỏi FCM (app uninstall hoặc token refresh) |
-  | `400` | `DEVICE_TOKEN_INVALID` | Token không đúng format FCM |
   | `401` | `AUTH_ACCESS_TOKEN_REQUIRED` | Thiếu access token |
   | `401` | `AUTH_INVALID_TOKEN` | Access token không hợp lệ hoặc hết hạn |
+  | `404` | `DEVICE_TOKENS_NOT_FOUND` | User chưa register FCM token nào |
   | `500` | `DEVICE_SEND_NOTIFICATION_FAILED` | Lỗi server không xác định khi gọi FCM |
+
+  Response lỗi gửi FCM có thể kèm `data.errors[]` để debug Firebase Admin SDK:
+
+  ```json
+  {
+    "success": false,
+    "code": "DEVICE_SEND_NOTIFICATION_FAILED",
+    "message": "Gửi thông báo thử nghiệm thất bại.",
+    "requestId": "req-device-003",
+    "data": {
+      "failedCount": 3,
+      "removedInvalidTokenCount": 0,
+      "errors": [
+        {
+          "code": "messaging/mismatched-credential",
+          "message": "Sender ID mismatch"
+        }
+      ]
+    }
+  }
+  ```
 
   ---
 
   ## Notes
 
-  - Endpoint này chỉ dùng cho mục đích debug/test — không nên expose production.
+  - Trước khi gọi endpoint này, user phải gọi `POST /api/devices/register-token` ít nhất một lần từ app Android thật.
   - FCM trả về `200` ngay cả khi device offline; notification sẽ được deliver khi device online lại.
-  - Nếu nhận `DEVICE_TOKEN_NOT_REGISTERED`, cần xóa token khỏi DB vì token đã invalid.
+  - Nếu FCM báo token invalid/not registered, backend sẽ tự xóa token đó khỏi DB.
   - `data` values phải là string — FCM không hỗ trợ nested objects trong data payload.
 }

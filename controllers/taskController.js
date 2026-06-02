@@ -82,7 +82,13 @@ const getTaskStats = async (req, res) => {
     const recentTasks = await Task.find({ userId })
       .sort({ createdAt: -1 })
       .limit(5)
-      .select('title status dueDate createdAt');
+      .select('title status dueDate createdAt')
+      .lean();
+
+    const normalizedRecentTasks = recentTasks.map((task) => ({
+      ...task,
+      dueDate: task.dueDate || null,
+    }));
 
     res.status(200).json({
       success: true,
@@ -93,12 +99,40 @@ const getTaskStats = async (req, res) => {
         pending,
         done,
         completionRate,
-        recentTasks,
+        recentTasks: normalizedRecentTasks,
       },
     });
   } catch (error) {
     console.error('Get task stats error:', error.message);
     return sendError(req, res, 500, 'TASK_STATS_RETRIEVE_FAILED');
+  }
+};
+
+// ==================== GET TASK BY ID ====================
+const getTaskById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!isValidId(id)) {
+      return sendError(req, res, 400, 'TASK_INVALID_ID');
+    }
+
+    const task = await Task.findOne({
+      _id: id,
+      userId: req.user._id,
+    });
+
+    if (!task) {
+      return sendError(req, res, 404, 'TASK_NOT_FOUND');
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: task,
+    });
+  } catch (error) {
+    console.error('Get task by id error:', error.message);
+    return sendError(req, res, 500, 'TASK_RETRIEVE_FAILED');
   }
 };
 
@@ -210,4 +244,11 @@ const deleteTask = async (req, res) => {
   }
 };
 
-module.exports = { getTasks, getTaskStats, createTask, updateTask, deleteTask };
+module.exports = {
+  getTasks,
+  getTaskStats,
+  getTaskById,
+  createTask,
+  updateTask,
+  deleteTask,
+};
