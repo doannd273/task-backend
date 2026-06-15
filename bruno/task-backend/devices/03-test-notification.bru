@@ -32,7 +32,8 @@ body:json {
     "title": "Test Notification",
     "body": "This is a test push notification.",
     "data": {
-      "type": "test"
+      "type": "test",
+      "taskId": "{{taskId}}"
     }
   }
 }
@@ -67,7 +68,7 @@ docs {
     -H "X-Device-Model: Pixel 7" \
     -H "X-Device-Id: device-xyz" \
     -H "User-Agent: TaskApp/1.0.0" \
-    -d '{"title":"Test","body":"Hello from server","data":{"type":"test"}}'
+    -d '{"title":"Test","body":"Hello from server","data":{"type":"test","taskId":"{{taskId}}"}}'
   ```
 
   ---
@@ -97,6 +98,7 @@ docs {
   | `title` | `string` | ❌ | Tiêu đề notification; mặc định `"Test Notification"` |
   | `body` | `string` | ❌ | Nội dung notification; mặc định `"This is a test push notification."` |
   | `data` | `object` | ❌ | Custom data payload key-value strings; mặc định `{}` |
+  | `data.taskId` | `string` | ❌ | Task id để Android deep link tới màn edit task khi user bấm notification |
 
   ---
 
@@ -163,6 +165,7 @@ docs {
   ## Notes
 
   - Trước khi gọi endpoint này, user phải gọi `POST /api/devices/register-token` ít nhất một lần từ app Android thật.
+  - Set `{{taskId}}` trong Bruno để notification click mở đúng task trên Android.
   - FCM trả về `200` ngay cả khi device offline; notification sẽ được deliver khi device online lại.
   - Nếu FCM báo token invalid/not registered, backend sẽ tự xóa token đó khỏi DB.
   - `data` values phải là string — FCM không hỗ trợ nested objects trong data payload.
