@@ -88,15 +88,14 @@ const registerToken = async (req, res) => {
 
     await DeviceToken.findOneAndUpdate(
       {
-        userId: req.user._id,
         token,
       },
       {
         $set: {
+          userId: req.user._id,
           platform,
         },
         $setOnInsert: {
-          userId: req.user._id,
           token,
         },
       },
