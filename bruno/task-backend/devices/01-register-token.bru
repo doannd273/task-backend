@@ -39,7 +39,7 @@ docs {
 
   ## Mô tả
 
-  Lưu FCM device token cho người dùng đang đăng nhập. Endpoint dùng upsert theo `userId + token`, nên gọi lại cùng token sẽ cập nhật `platform/updatedAt` thay vì tạo duplicate row.
+  Lưu FCM device token cho người dùng đang đăng nhập. Endpoint dùng upsert theo `token`, nên gọi lại cùng token sẽ cập nhật `userId/platform/updatedAt` thay vì tạo duplicate row.
 
   **Domain:** Devices — quản lý push notification target cho từng user.
 
@@ -118,7 +118,6 @@ docs {
   | `400` | `DEVICE_INVALID_PLATFORM` | `platform` không thuộc `android`, `ios` |
   | `401` | `AUTH_ACCESS_TOKEN_REQUIRED` | Thiếu access token |
   | `401` | `AUTH_INVALID_TOKEN` | Access token không hợp lệ hoặc hết hạn |
-  | `409` | `COMMON_DUPLICATE_RESOURCE` | Token đã tồn tại theo unique index nhưng không khớp với upsert filter |
   | `500` | `DEVICE_REGISTER_FAILED` | Lỗi server không xác định |
 
   ---
@@ -126,6 +125,7 @@ docs {
   ## Notes
 
   - `userId` lấy từ JWT, client không gửi trong body.
-  - Gọi endpoint nhiều lần với cùng `token` của cùng user không tạo thêm document.
+  - Gọi endpoint nhiều lần với cùng `token` không tạo thêm document.
+  - Nếu cùng FCM token từng thuộc user khác, backend sẽ chuyển token đó sang user hiện tại. Đây là case thường gặp khi cùng device logout/login tài khoản khác.
   - `token` đang unique toàn collection để một FCM token không bị lưu trùng.
 }
