@@ -92,7 +92,7 @@ docs {
   |---|---|---|---|
   | `conversationId` | `string` | ✅ | MongoDB ObjectId của conversation cần gửi tin |
   | `content` | `string` | ✅ | Nội dung tin nhắn |
-  | `type` | `string` | ❌ | Loại tin nhắn: `text`, `image`, `system` — mặc định `text` |
+  | `type` | `string` | ❌ | Loại tin nhắn: `text`, `image`, `video` — mặc định `text` |
 
   ---
 
@@ -106,7 +106,13 @@ docs {
     "data": {
       "_id": "664msg...",
       "conversationId": "664conv...",
-      "senderId": "664u1...",
+      "sender": {
+        "_id": "664u1...",
+        "email": "a@example.com",
+        "fullName": "User A",
+        "avatar": "",
+        "phone": ""
+      },
       "content": "Hello!",
       "type": "text",
       "createdAt": "2026-05-20T10:10:00.000Z",
@@ -120,9 +126,9 @@ docs {
   | `success` | `boolean` | `true` nếu thành công |
   | `data._id` | `string` | MongoDB ObjectId của tin nhắn vừa tạo |
   | `data.conversationId` | `string` | ObjectId của conversation |
-  | `data.senderId` | `string` | ObjectId của người gửi (tự động từ token) |
+  | `data.sender` | `object` | Public user object của người gửi (`_id`, `email`, `fullName`, `avatar`, `phone`) |
   | `data.content` | `string` | Nội dung tin nhắn |
-  | `data.type` | `string` | Loại tin nhắn: `text`, `image`, hoặc `system` |
+  | `data.type` | `string` | Loại tin nhắn: `text`, `image`, hoặc `video` |
   | `data.createdAt` | `string` | ISO 8601 — thời điểm gửi |
 
   ### ❌ Error Responses
@@ -131,6 +137,7 @@ docs {
   |---|---|---|
   | `400` | `MESSAGE_INVALID_CONVERSATION_ID` | `conversationId` không phải MongoDB ObjectId hợp lệ |
   | `400` | `MESSAGE_CONTENT_REQUIRED` | Thiếu field `content` |
+  | `400` | `MESSAGE_INVALID_TYPE` | `type` không thuộc `text`, `image`, `video` |
   | `401` | `UNAUTHORIZED` | Access token không hợp lệ hoặc hết hạn |
   | `404` | `MESSAGE_CONVERSATION_NOT_FOUND_OR_ACCESS_DENIED` | Conversation không tồn tại hoặc user không phải thành viên |
   | `500` | `MESSAGE_SEND_FAILED` | Lỗi server không xác định |
@@ -140,7 +147,7 @@ docs {
   ## Notes
 
   - API này là backup REST cho Socket.IO — trong production nên ưu tiên dùng Socket để nhận tin nhắn realtime.
-  - `senderId` được lấy tự động từ JWT — không truyền trong body.
+  - Người gửi được lấy tự động từ JWT — không truyền trong body; response trả về field `sender`.
   - Gửi tin nhắn thành công sẽ tự động cập nhật `lastMessage` và `lastMessageAt` của conversation.
   - Tin nhắn gửi qua REST sẽ không tự động phát Socket event — các user khác sẽ chỉ thấy khi gọi Get Messages hoặc nhận qua Socket.
 }

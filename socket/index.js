@@ -3,6 +3,7 @@ const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
 const User = require('../models/User');
 const { getAuthVersion, isAuthVersionValid } = require('../utils/authVersion');
+const { DEFAULT_MESSAGE_TYPE, isValidMessageType } = require('../utils/messageTypes');
 
 const socketHandler = (io) => {
   // Middleware xác thực token WebSocket
@@ -72,6 +73,13 @@ const socketHandler = (io) => {
     // ================== MESSAGING ==================
     socket.on('send_message', async ({ conversationId, content, type }, callback) => {
       try {
+        const messageType = type || DEFAULT_MESSAGE_TYPE;
+
+        if (!isValidMessageType(messageType)) {
+          if (callback) callback({ success: false, message: 'Invalid message type. Supported types: text, image, video' });
+          return;
+        }
+
         const conversation = await Conversation.findOne({
           _id: conversationId,
           participants: socket.userId
@@ -87,15 +95,16 @@ const socketHandler = (io) => {
           conversationId,
           senderId: socket.userId,
           content,
-          type: type || 'text'
+          type: messageType
         });
 
         // Cập nhật conversation
         conversation.lastMessage = {
+          _id: message._id,
           content,
           senderId: socket.userId,
           createdAt: message.createdAt,
-          type: type || 'text'
+          type: messageType
         };
         conversation.lastMessageAt = message.createdAt;
         await conversation.save();

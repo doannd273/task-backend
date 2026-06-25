@@ -110,7 +110,10 @@ docs {
       "type": "group",
       "name": "Team Chat",
       "creator": "664creator...",
-      "participants": ["664creator...", "664user2..."],
+      "participants": [
+        { "_id": "664creator...", "email": "creator@example.com", "fullName": "Creator", "avatar": "", "phone": "" },
+        { "_id": "664user2...", "email": "user2@example.com", "fullName": "User Two", "avatar": "", "phone": "" }
+      ],
       "lastMessage": null,
       "lastMessageAt": "2026-05-20T10:00:00.000Z",
       "createdAt": "2026-05-20T10:00:00.000Z",
@@ -126,8 +129,8 @@ docs {
   | `data.type` | `string` | Loại conversation: `private` hoặc `group` |
   | `data.name` | `string` | Tên nhóm (rỗng với private) |
   | `data.creator` | `string` | ObjectId của người tạo |
-  | `data.participants` | `array<string>` | Danh sách ObjectId tất cả participants |
-  | `data.lastMessage` | `object\|null` | Tin nhắn cuối cùng, `null` nếu chưa có |
+  | `data.participants` | `array` | Danh sách participants đã populate (có `_id`, `email`, `fullName`, `avatar`, `phone`) |
+  | `data.lastMessage` | `object\|null` | Tin nhắn cuối cùng; nếu private conversation đã tồn tại thì có thể gồm `_id`, `content`, `sender`, `createdAt`, `type`; `null` nếu chưa có |
   | `data.lastMessageAt` | `string` | ISO 8601 — thời điểm tin nhắn cuối |
 
   ### ❌ Error Responses
@@ -149,4 +152,5 @@ docs {
   - Với `private` chat: nếu conversation giữa 2 user đã tồn tại, API trả về `200` với conversation cũ thay vì tạo mới — **idempotent**.
   - Người tạo luôn được thêm vào `participantIds` tự động, dù không truyền trong array.
   - `participantIds` cho `private` chat chỉ cần truyền 1 userId của người kia — người tạo tự động được thêm để đủ 2.
+  - `participants` được populate sẵn để client hiển thị tên/avatar mà không cần gọi thêm API.
 }

@@ -8,6 +8,7 @@
     "dev": "nodemon server.js",
     "sync:android-url": "node scripts/syncAndroidDevUrl.js",
     "dev:android": "npm run sync:android-url && npm run dev",
+    "seed:messages": "node seedMessages.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

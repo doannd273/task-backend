@@ -95,11 +95,12 @@ docs {
       "name": "Team Chat",
       "creator": "664creator...",
       "participants": [
-        { "_id": "664u1...", "email": "a@example.com", "avatar": "", "phone": "" }
+        { "_id": "664u1...", "email": "a@example.com", "fullName": "User A", "avatar": "", "phone": "" }
       ],
       "lastMessage": {
+        "_id": "664msg...",
         "content": "Hello!",
-        "senderId": "664u1...",
+        "sender": { "_id": "664u1...", "email": "a@example.com", "fullName": "User A", "avatar": "", "phone": "" },
         "createdAt": "2026-05-20T10:00:00.000Z",
         "type": "text"
       },
@@ -117,8 +118,8 @@ docs {
   | `data.type` | `string` | Loại: `private` hoặc `group` |
   | `data.name` | `string` | Tên nhóm (rỗng với private) |
   | `data.creator` | `string` | ObjectId của người tạo |
-  | `data.participants` | `array` | Danh sách participants đã populate (có `_id`, `email`, `avatar`, `phone`) |
-  | `data.lastMessage` | `object\|null` | Tin nhắn cuối — `null` nếu chưa có tin nhắn nào |
+  | `data.participants` | `array` | Danh sách participants đã populate (có `_id`, `email`, `fullName`, `avatar`, `phone`) |
+  | `data.lastMessage` | `object\|null` | Tin nhắn cuối — có `_id`, `content`, `sender` (public user object), `createdAt`, `type`; `null` nếu chưa có tin nhắn nào |
   | `data.lastMessageAt` | `string` | ISO 8601 — thời điểm tin nhắn cuối |
 
   ### ❌ Error Responses
@@ -135,5 +136,5 @@ docs {
   ## Notes
 
   - `CONVERSATION_NOT_FOUND_OR_ACCESS_DENIED` bao gồm cả 2 trường hợp: conversation không tồn tại và user không phải thành viên — thiết kế chủ ý để tránh lộ thông tin.
-  - `participants` được populate với `_id`, `email`, `avatar`, `phone`.
+  - `participants` được populate với `_id`, `email`, `fullName`, `avatar`, `phone`.
 }

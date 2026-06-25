@@ -70,7 +70,7 @@ The project uses MongoDB through Mongoose.
 
 - **Message**
   - `conversationId`, `senderId`, `content`, `type`
-  - Supported message types: `text`, `image`, `system`
+  - Supported message types: `text`, `image`, `video`
 
 ## Environment Variables
 

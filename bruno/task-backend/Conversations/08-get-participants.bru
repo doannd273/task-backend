@@ -106,6 +106,7 @@ docs {
         {
           "_id": "664u1...",
           "email": "a@example.com",
+          "fullName": "User A",
           "avatar": "/uploads/avatars/a.jpg",
           "phone": "+84901234567"
         }
@@ -123,6 +124,7 @@ docs {
   | `data.users` | `array` | Danh sách thành viên trang hiện tại |
   | `data.users[]._id` | `string` | MongoDB ObjectId của user |
   | `data.users[].email` | `string` | Email của user |
+  | `data.users[].fullName` | `string` | Tên đầy đủ của user |
   | `data.users[].avatar` | `string` | URL ảnh đại diện |
   | `data.users[].phone` | `string` | Số điện thoại |
   | `data.totalItems` | `number` | Tổng số thành viên trong conversation |
@@ -142,6 +144,6 @@ docs {
   ## Notes
 
   - `totalItems` là tổng số participants trong conversation (không phải tổng user trên DB).
-  - Chỉ trả về các field `_id`, `email`, `avatar`, `phone` — không trả về `fullName`. Lưu ý khi hiển thị UI cần dùng email thay thế nếu cần tên.
+  - Chỉ trả về public profile fields của user: `_id`, `email`, `fullName`, `avatar`, `phone`.
   - Pagination được thực hiện thủ công trên array nhúng (`participants`) trước khi query DB.
 }

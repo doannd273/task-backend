@@ -106,7 +106,13 @@ docs {
         {
           "_id": "664msg...",
           "conversationId": "664conv...",
-          "senderId": "664u1...",
+          "sender": {
+            "_id": "664u1...",
+            "email": "a@example.com",
+            "fullName": "User A",
+            "avatar": "",
+            "phone": ""
+          },
           "content": "Hello!",
           "type": "text",
           "createdAt": "2026-05-20T10:05:00.000Z",
@@ -126,9 +132,9 @@ docs {
   | `data.messages` | `array` | Danh sách tin nhắn trang hiện tại (mới nhất trước) |
   | `data.messages[]._id` | `string` | MongoDB ObjectId của tin nhắn |
   | `data.messages[].conversationId` | `string` | ObjectId của conversation chứa tin nhắn |
-  | `data.messages[].senderId` | `string` | ObjectId của user gửi tin |
+  | `data.messages[].sender` | `object` | Public user object của người gửi (`_id`, `email`, `fullName`, `avatar`, `phone`) |
   | `data.messages[].content` | `string` | Nội dung tin nhắn |
-  | `data.messages[].type` | `string` | Loại tin nhắn: `text`, `image`, hoặc `system` |
+  | `data.messages[].type` | `string` | Loại tin nhắn: `text`, `image`, hoặc `video` |
   | `data.messages[].createdAt` | `string` | ISO 8601 — thời điểm gửi |
   | `data.totalItems` | `number` | Tổng số tin nhắn trong conversation |
   | `data.totalPages` | `number` | Tổng số trang |
@@ -148,6 +154,6 @@ docs {
   ## Notes
 
   - Kết quả sắp xếp `createdAt DESC` (mới nhất trước) — client thường đảo ngược array để hiển thị chat theo thứ tự thời gian tăng dần.
-  - `senderId` không được populate — client cần map với danh sách participants để hiển thị tên và avatar người gửi.
+  - `sender` được populate sẵn để client hiển thị tên và avatar người gửi, không cần tự map từ participants.
   - Tin nhắn gửi qua Socket.IO sẽ xuất hiện khi gọi API này — REST và Socket cùng dùng chung một collection `messages`.
 }

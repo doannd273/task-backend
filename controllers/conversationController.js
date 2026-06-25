@@ -1,13 +1,42 @@
 const mongoose = require('mongoose');
 const Conversation = require('../models/Conversation');
+const Message = require('../models/Message');
 const User = require('../models/User');
 const { sendError } = require('../utils/response');
 const { formatUserResponse, formatUsersResponse } = require('../utils/userResponse');
 
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
+const PUBLIC_USER_FIELDS = '_id email fullName avatar phone';
 
-const formatConversationResponse = (req, conversation) => {
+const getLatestMessageIdByConversationId = async (conversations) => {
+  const conversationIds = conversations
+    .filter((conversation) => conversation.lastMessage && !conversation.lastMessage._id)
+    .map((conversation) => conversation._id);
+
+  if (conversationIds.length === 0) return new Map();
+
+  const latestMessages = await Message.aggregate([
+    { $match: { conversationId: { $in: conversationIds } } },
+    { $sort: { createdAt: -1 } },
+    {
+      $group: {
+        _id: '$conversationId',
+        messageId: { $first: '$_id' },
+      },
+    },
+  ]);
+
+  return new Map(latestMessages.map((message) => [message._id.toString(), message.messageId]));
+};
+
+const formatConversationResponse = (req, conversation, latestMessageIdByConversationId = new Map()) => {
   const obj = typeof conversation.toJSON === 'function' ? conversation.toJSON() : conversation;
+  const conversationId = obj._id?.toString();
+
+  if (obj.lastMessage && !obj.lastMessage._id && conversationId) {
+    const latestMessageId = latestMessageIdByConversationId.get(conversationId);
+    if (latestMessageId) obj.lastMessage._id = latestMessageId;
+  }
 
   if (Array.isArray(obj.participants)) {
     obj.participants = obj.participants.map((participant) => {
@@ -17,11 +46,18 @@ const formatConversationResponse = (req, conversation) => {
   }
 
   if (obj.lastMessage?.senderId && typeof obj.lastMessage.senderId === 'object') {
-    obj.lastMessage.senderId = formatUserResponse(req, obj.lastMessage.senderId);
+    obj.lastMessage.sender = formatUserResponse(req, obj.lastMessage.senderId);
+    delete obj.lastMessage.senderId;
   }
 
   return obj;
 };
+
+const populateConversationResponseFields = (conversation) =>
+  conversation.populate([
+    { path: 'participants', select: PUBLIC_USER_FIELDS },
+    { path: 'lastMessage.senderId', select: PUBLIC_USER_FIELDS },
+  ]);
 
 // ==================== CREATE CONVERSATION ====================
 const createConversation = async (req, res) => {
@@ -56,7 +92,13 @@ const createConversation = async (req, res) => {
       });
 
       if (existingConv) {
-        return res.status(200).json({ success: true, data: existingConv });
+        await populateConversationResponseFields(existingConv);
+        const latestMessageIdByConversationId = await getLatestMessageIdByConversationId([existingConv]);
+
+        return res.status(200).json({
+          success: true,
+          data: formatConversationResponse(req, existingConv, latestMessageIdByConversationId),
+        });
       }
     }
 
@@ -73,7 +115,9 @@ const createConversation = async (req, res) => {
       participants,
     });
 
-    res.status(201).json({ success: true, data: conversation });
+    await populateConversationResponseFields(conversation);
+
+    res.status(201).json({ success: true, data: formatConversationResponse(req, conversation) });
   } catch (error) {
     console.error('Create conversation error:', error);
     return sendError(req, res, 500, 'CONVERSATION_CREATE_FAILED');
@@ -92,16 +136,19 @@ const getConversations = async (req, res) => {
     const totalItems = await Conversation.countDocuments(filter);
     // Populate participants info to easily show avatars/names
     const conversations = await Conversation.find(filter)
-      .populate('participants', '_id email avatar phone')
-      .populate('lastMessage.senderId', '_id email avatar')
+      .populate('participants', PUBLIC_USER_FIELDS)
+      .populate('lastMessage.senderId', PUBLIC_USER_FIELDS)
       .sort({ lastMessageAt: -1 })
       .skip(skip)
       .limit(limit);
+    const latestMessageIdByConversationId = await getLatestMessageIdByConversationId(conversations);
 
     res.status(200).json({
       success: true,
       data: {
-        conversations: conversations.map((conversation) => formatConversationResponse(req, conversation)),
+        conversations: conversations.map((conversation) =>
+          formatConversationResponse(req, conversation, latestMessageIdByConversationId)
+        ),
         totalItems,
         totalPages: Math.ceil(totalItems / limit),
         currentPage: page,
@@ -122,13 +169,20 @@ const getConversationDetails = async (req, res) => {
     const conversation = await Conversation.findOne({
       _id: id,
       participants: req.user._id,
-    }).populate('participants', '_id email avatar phone');
+    })
+      .populate('participants', PUBLIC_USER_FIELDS)
+      .populate('lastMessage.senderId', PUBLIC_USER_FIELDS);
 
     if (!conversation) {
       return sendError(req, res, 404, 'CONVERSATION_NOT_FOUND_OR_ACCESS_DENIED');
     }
 
-    res.status(200).json({ success: true, data: formatConversationResponse(req, conversation) });
+    const latestMessageIdByConversationId = await getLatestMessageIdByConversationId([conversation]);
+
+    res.status(200).json({
+      success: true,
+      data: formatConversationResponse(req, conversation, latestMessageIdByConversationId),
+    });
   } catch (error) {
     console.error('Get conversation details error:', error);
     return sendError(req, res, 500, 'COMMON_INTERNAL_ERROR');
@@ -259,7 +313,7 @@ const getParticipants = async (req, res) => {
     const totalItems = conversation.participants.length;
     const pIds = conversation.participants.slice(skip, skip + limit);
     
-    const users = await User.find({ _id: { $in: pIds } }).select('_id email avatar phone');
+    const users = await User.find({ _id: { $in: pIds } }).select(PUBLIC_USER_FIELDS);
     
     res.status(200).json({
       success: true, 

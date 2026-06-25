@@ -103,12 +103,13 @@ docs {
           "name": "",
           "creator": "664creator...",
           "participants": [
-            { "_id": "664u1...", "email": "a@example.com", "avatar": "", "phone": "" },
-            { "_id": "664u2...", "email": "b@example.com", "avatar": "", "phone": "" }
+            { "_id": "664u1...", "email": "a@example.com", "fullName": "User A", "avatar": "", "phone": "" },
+            { "_id": "664u2...", "email": "b@example.com", "fullName": "User B", "avatar": "", "phone": "" }
           ],
           "lastMessage": {
+            "_id": "664msg...",
             "content": "Hello!",
-            "senderId": { "_id": "664u1...", "email": "a@example.com", "avatar": "" },
+            "sender": { "_id": "664u1...", "email": "a@example.com", "fullName": "User A", "avatar": "", "phone": "" },
             "createdAt": "2026-05-20T10:00:00.000Z",
             "type": "text"
           },
@@ -131,8 +132,8 @@ docs {
   | `data.conversations[]._id` | `string` | MongoDB ObjectId của conversation |
   | `data.conversations[].type` | `string` | Loại: `private` hoặc `group` |
   | `data.conversations[].name` | `string` | Tên nhóm (rỗng với private) |
-  | `data.conversations[].participants` | `array` | Danh sách participants đã populate (có `_id`, `email`, `avatar`, `phone`) |
-  | `data.conversations[].lastMessage` | `object\|null` | Tin nhắn cuối — có `content`, `senderId` (đã populate), `createdAt`, `type` |
+  | `data.conversations[].participants` | `array` | Danh sách participants đã populate (có `_id`, `email`, `fullName`, `avatar`, `phone`) |
+  | `data.conversations[].lastMessage` | `object\|null` | Tin nhắn cuối — có `_id`, `content`, `sender` (public user object), `createdAt`, `type` |
   | `data.conversations[].lastMessageAt` | `string` | ISO 8601 — thời điểm tin nhắn cuối (dùng để sort) |
   | `data.totalItems` | `number` | Tổng số conversation |
   | `data.totalPages` | `number` | Tổng số trang |
@@ -149,7 +150,7 @@ docs {
 
   ## Notes
 
-  - `participants` và `lastMessage.senderId` được **populate** — trả về object đầy đủ thay vì chỉ ObjectId.
+  - `participants` và `lastMessage.sender` được **populate** — trả về object đầy đủ thay vì chỉ ObjectId.
   - Danh sách sắp xếp theo `lastMessageAt` giảm dần — conversation có tin nhắn mới nhất lên đầu.
   - Chỉ trả về conversation mà user hiện tại là participant.
 }

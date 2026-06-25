@@ -1,0 +1,36 @@
+meta {
+  name: tes2
+  type: http
+  seq: 3
+}
+
+get {
+  url: http://192.168.1.21:3000/api/conversations/getConversations?page=1&limit=20
+  body: none
+  auth: inherit
+}
+
+params:query {
+  page: 1
+  limit: 20
+}
+
+headers {
+  accept-encoding: gzip
+  accept-language: en
+  authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OWQ3N2JmOGM2Zjc0MTRlYzg5ODJiNzQiLCJhdXRoVmVyc2lvbiI6MSwiaWF0IjoxNzgyMjc4MjQzLCJleHAiOjE3ODIyNzkxNDN9.p2u4XwmOnXWAswKLQnl-tDZZVQXAgw6xolOG5oSSYZ8
+  connection: Keep-Alive
+  host: 192.168.1.21:3000
+  user-agent: TreeTask/v1.0.0 (Android 16; sdk_gphone64_arm64)
+  x-app-version-code: 321
+  x-app-version-name: v1.0.0
+  x-device-id: 8e2d4a87dc417c60
+  x-device-model: sdk_gphone64_arm64
+  x-os-version: 36
+  x-platform: android
+  Accept-Encoding: deflate, gzip
+}
+
+settings {
+  encodeUrl: false
+}

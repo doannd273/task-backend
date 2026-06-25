@@ -94,6 +94,7 @@ const messages = {
 
     MESSAGE_INVALID_CONVERSATION_ID: 'ID cuộc trò chuyện không hợp lệ.',
     MESSAGE_CONTENT_REQUIRED: 'Nội dung tin nhắn là bắt buộc.',
+    MESSAGE_INVALID_TYPE: 'Loại tin nhắn không hợp lệ. Chỉ hỗ trợ text, image, video.',
     MESSAGE_CONVERSATION_NOT_FOUND_OR_ACCESS_DENIED: 'Không tìm thấy cuộc trò chuyện hoặc không có quyền truy cập.',
     MESSAGE_RETRIEVE_FAILED: 'Không thể lấy danh sách tin nhắn.',
     MESSAGE_SEND_FAILED: 'Gửi tin nhắn thất bại.',
@@ -190,6 +191,7 @@ const messages = {
 
     MESSAGE_INVALID_CONVERSATION_ID: 'Invalid conversation ID.',
     MESSAGE_CONTENT_REQUIRED: 'Message content is required.',
+    MESSAGE_INVALID_TYPE: 'Invalid message type. Supported types are text, image, and video.',
     MESSAGE_CONVERSATION_NOT_FOUND_OR_ACCESS_DENIED: 'Conversation not found or access denied.',
     MESSAGE_RETRIEVE_FAILED: 'Failed to retrieve messages.',
     MESSAGE_SEND_FAILED: 'Failed to send message.',

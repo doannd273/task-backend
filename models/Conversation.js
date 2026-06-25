@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { MESSAGE_TYPES, DEFAULT_MESSAGE_TYPE } = require('../utils/messageTypes');
 
 const conversationSchema = new mongoose.Schema(
   {
@@ -24,6 +25,10 @@ const conversationSchema = new mongoose.Schema(
       },
     ],
     lastMessage: {
+      _id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Message',
+      },
       content: String,
       senderId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -32,8 +37,8 @@ const conversationSchema = new mongoose.Schema(
       createdAt: Date,
       type: {
         type: String,
-        enum: ['text', 'image', 'system'],
-        default: 'text',
+        enum: MESSAGE_TYPES,
+        default: DEFAULT_MESSAGE_TYPE,
       },
     },
     lastMessageAt: {

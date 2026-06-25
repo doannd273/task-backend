@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { MESSAGE_TYPES, DEFAULT_MESSAGE_TYPE } = require('../utils/messageTypes');
 
 const messageSchema = new mongoose.Schema(
   {
@@ -20,8 +21,8 @@ const messageSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['text', 'image', 'system'],
-      default: 'text',
+      enum: MESSAGE_TYPES,
+      default: DEFAULT_MESSAGE_TYPE,
     },
   },
   {
